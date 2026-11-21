@@ -1,0 +1,28 @@
+// Verifies the engine against data/ground_truth.json. Run: node tools/test_engine.js
+const fs = require("fs"), path = require("path"), E = require("../console/engine.js");
+const rd = n => fs.readFileSync(path.join(__dirname, "..", "data", n), "utf8");
+const db = E.load({ files: ["airtel_suspectA_cdr.csv", "jio_suspectB_cdr.csv", "ipdr_suspectA.csv"].map(n => ({ name: n, text: rd(n) })), towers: rd("tower_list.csv"), services: rd("service_map.csv") });
+const gt = JSON.parse(rd("ground_truth.json")); let fail = 0;
+const ok = (c, m) => { console.log((c ? "PASS " : "FAIL ") + m); if (!c) fail++; };
+db.report.forEach(r => console.log("  ", r.file, JSON.stringify({ rows: r.rows, parsed: r.parsed, dup: r.duplicates, fixes: r.numberFixes, noImei: r.missingImei, noDur: r.missingDuration, imputed: r.imputedDuration, bad: r.badRows, noTower: r.unmappedTower })));
+ok(db.recs.filter(r => r.owner === db.A).length === gt.events_generated.A, "A event count = " + gt.events_generated.A);
+ok(db.recs.filter(r => r.owner === db.B).length === gt.events_generated.B, "B event count = " + gt.events_generated.B);
+const cm = E.common(db).map(x => "+" + x.num).sort(), gm = Object.keys(gt.common_numbers_between_A_and_B).sort();
+ok(JSON.stringify(cm) === JSON.stringify(gm), "common numbers match " + cm.length);
+const tA = E.contacts(db, "A").slice(0, 5).map(c => "+" + c.num + ":" + c.total);
+ok(JSON.stringify(tA) === JSON.stringify(gt.top5_contacts_A.map(([n, c]) => n + ":" + c)), "top5 A matches");
+ok(E.direct(db).length === gt.direct_A_B_calls, "direct A->B = " + gt.direct_A_B_calls);
+const nA = E.night(db, "A")[0]; ok("+" + nA.num in gt.night_00_05_activity_A && nA.night === gt.night_00_05_activity_A["+" + nA.num], "night A top = " + nA.night);
+const d = E.devices(db, "A").changes, s = E.devices(db, "B").changes;
+ok(d.length === 1 && d[0].from === gt.imei_change_A.from && d[0].to === gt.imei_change_A.to, "IMEI change A detected: " + d.map(x => x.type));
+ok(s.length === 1 && s[0].to === gt.sim_change_B.imsi_to, "SIM change B detected: " + s.map(x => x.type));
+const co = E.coloc(db); console.log("   coloc:", co.map(g => g.tower + " " + g.day));
+ok(co.length === gt.co_location_events.length && co.every((g, i) => g.tower === gt.co_location_events[i].tower), "co-location windows match (" + co.length + ")");
+const ip = gt.ipdr_incident, q = E.ask(db, `Which subscriber had ${ip.public_ip}:${ip.public_port} at 2026-03-07 22:47:10?`);
+ok(q.status === "supported" && q.findings[0].html.includes(E.pretty(ip.answer_subscriber.slice(1))), "IPDR incident resolves to Suspect A");
+ok(E.ask(db, "Where was Suspect B on 20 March 2026?").status === "unsupported", "out-of-range date refused");
+ok(E.ask(db, "What did they say in the calls?").status === "unsupported", "call content refused");
+ok(E.ask(db, "Who owns +91 98000 30003?").status === "unsupported", "owner lookup refused");
+ok(E.ask(db, "दोनों संदिग्धों के बीच common numbers कौन से हैं?").intent === "common_numbers", "Hindi common-numbers query");
+["Show top contacts", "calls on 6 March", "imei changes", "night activity", "same tower", "tower timeline 6 march", "summary", "app usage"].forEach(x => { const r = E.ask(db, x); ok(r.status !== "unsupported" || x === "x", `intent '${x}' -> ${r.intent}`); });
+console.log(fail ? `\n${fail} FAILED` : "\nALL PASSED"); process.exit(fail ? 1 : 0);

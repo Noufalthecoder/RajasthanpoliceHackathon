@@ -227,14 +227,14 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
     <aside class="login" id="login">
       <h3>🔐 Authorised Personnel Login</h3>
       <p class="s">Role-based access · all sessions are logged</p>
-      <form onsubmit="event.preventDefault();document.getElementById('ok').style.display='block'">
+      <form onsubmit="event.preventDefault();document.getElementById('ok').style.display='block';setTimeout(function(){location.href='console/console.html'},700)">
         <label>Role</label>
         <select><option>Investigating Officer</option><option>Reviewing Officer (verifier)</option><option>Administrator</option></select>
         <label>Officer ID</label><input placeholder="e.g. RJ-IO-0421" required>
         <label>Case number</label><input placeholder="e.g. CASE/2026/PS03-001">
         <label>One-time password</label><input type="password" placeholder="••••••" required>
         <button class="btn saffron" type="submit">Sign in securely</button>
-        <div class="ok" id="ok">✔ Demo only: authentication is mocked. The full prototype opens the case workspace here.</div>
+        <div class="ok" id="ok">✔ Demo only: authentication is mocked. Opening the case workspace…</div>
         <div class="note">🛈 <span>Unauthorised access is prohibited and is recorded.</span></div>
       </form>
     </aside>

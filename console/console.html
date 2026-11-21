@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANCHAR-NETRA · Investigator Console</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2447;--navy2:#13346b;--saffron:#ff9933;--green:#138808;--red:#c62828;--ink:#16202e;--muted:#5b6778;--line:#dfe5ee;--bg:#f4f6fa;--card:#fff;--accent:#1f5bd8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+.tri{height:4px;background:linear-gradient(90deg,var(--saffron) 33%,#fff 33% 66%,var(--green) 66%)}
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:8px 18px;flex-wrap:wrap}
+.top img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}
+.top h1{font:700 18px "Source Serif 4",serif;letter-spacing:.4px}
+.top small{display:block;color:#b9c8e6;font-size:11.5px}
+.top .sp{flex:1}
+.badge{background:#fff4d6;color:#6b4e00;border-radius:99px;padding:3px 11px;font-size:11.5px;font-weight:600}
+.top select{padding:6px 8px;border-radius:6px;border:0;font:inherit;font-size:12.5px}
+.layout{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 62px)}
+nav.side{background:#fff;border-right:1px solid var(--line);padding:14px 10px;position:sticky;top:0;align-self:start;height:calc(100vh - 62px);overflow:auto}
+nav.side button{display:flex;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:9px 11px;border-radius:8px;font:inherit;font-weight:600;color:var(--navy);cursor:pointer;margin-bottom:2px}
+nav.side button:hover{background:#eef3fc}nav.side button.on{background:var(--navy);color:#fff}
+nav.side .grp{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:14px 11px 5px}
+nav.side .cnt{margin-left:auto;background:var(--saffron);color:#1b1200;border-radius:99px;font-size:11px;padding:0 7px}
+main{padding:20px 24px;min-width:0}
+h2{font:700 22px "Source Serif 4",serif;color:var(--navy);margin-bottom:2px}
+.lead{color:var(--muted);margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h3{font-size:15px;color:var(--navy);margin-bottom:10px}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi b{display:block;font:700 26px "Source Serif 4",serif;color:var(--navy)}.kpi span{color:var(--muted);font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;background:#eef3fc;color:var(--navy);font-weight:600;padding:8px 10px;position:sticky;top:0}
+td{padding:7px 10px;border-top:1px solid var(--line);vertical-align:top}
+.scroll{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.btn{border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--navy);color:#fff}
+.btn:hover{background:var(--navy2)}.btn.sm{padding:4px 9px;font-size:12px}.btn.alt{background:#eef3fc;color:var(--navy)}.btn.ok{background:var(--green)}.btn.warn{background:var(--saffron);color:#1b1200}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #c9d3e3;border-radius:8px;font:inherit;background:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.chip{display:inline-block;background:#eaf0fb;color:#0b3a8f;border:1px solid #bdd0f5;font:600 11px ui-monospace,Consolas,monospace;padding:1px 7px;border-radius:6px;margin:2px 3px 2px 0;cursor:pointer}
+.chip:hover{background:#d6e4ff}
+.tag{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11.5px;font-weight:600}
+.t-red{background:#fde8e8;color:#8a1c1c}.t-grn{background:#e6f5e9;color:#14562a}.t-amb{background:#fff1dc;color:#8a4b00}.t-blu{background:#e7efff;color:#0b3a8f}.t-gry{background:#eceff4;color:#46536a}
+.good{color:var(--green)}.bad{color:var(--red)}.mut{color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:110px;border-bottom:1px solid var(--line)}
+.bars div{flex:1;background:var(--navy2);border-radius:3px 3px 0 0;min-height:1px;position:relative}
+.bars div.n{background:var(--saffron)}
+.axis{display:flex;gap:3px;font-size:10px;color:var(--muted)}.axis span{flex:1;text-align:center}
+#graph,#map{height:480px;border:1px solid var(--line);border-radius:10px;background:#fff}
+/* assistant */
+.chat{display:flex;flex-direction:column;height:calc(100vh - 150px);min-height:480px}
+.msgs{flex:1;overflow:auto;padding:6px 2px}
+.m{max-width:88%;padding:11px 14px;border-radius:12px;margin:0 0 12px}
+.m.u{background:var(--accent);color:#fff;margin-left:auto;border-bottom-right-radius:3px}
+.m.a{background:#fff;border:1px solid var(--line);border-bottom-left-radius:3px}
+.m.a.un{border-left:4px solid var(--saffron);background:#fffaf0}
+.f{padding:9px 0;border-top:1px dashed var(--line)}.f:first-of-type{border-top:0}
+.plan{font:11.5px ui-monospace,Consolas,monospace;background:#0f2c58;color:#cfe0ff;border-radius:8px;padding:8px 10px;margin-top:8px;overflow:auto}
+.sugg{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.sugg button{border:1px solid #bdd0f5;background:#eaf0fb;color:#0b3a8f;border-radius:99px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+.compose{display:flex;gap:10px;padding-top:10px;border-top:1px solid var(--line)}.compose input{flex:1}
+.pend{font-size:11.5px;color:var(--muted)}
+/* drawer */
+#drawer{position:fixed;top:0;right:-440px;width:420px;max-width:92vw;height:100vh;background:#fff;box-shadow:-10px 0 40px rgba(0,0,0,.2);transition:.25s;z-index:200;padding:18px;overflow:auto;border-left:4px solid var(--saffron)}
+#drawer.open{right:0}#drawer h3{color:var(--navy);margin-bottom:8px}
+#drawer td:first-child{color:var(--muted);width:42%}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:300;pointer-events:none}#toast.on{opacity:1}
+.hide{display:none}
+.report{background:#fff;padding:30px;border:1px solid var(--line);border-radius:12px}
+.report h1{font:700 24px "Source Serif 4",serif;color:var(--navy)}
+@media print{.top,nav.side,.noprint,#drawer,.tri{display:none!important}.layout{display:block}main{padding:0}body{background:#fff}.card{break-inside:avoid}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto;display:flex;flex-wrap:wrap}nav.side .grp{display:none}nav.side button{width:auto}.g2,.g3,.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}main{padding:14px}}
+</style>
+</head>
+<body>
+<div class="tri"></div>
+<div class="top">
+  <img src="../assets/logo.png" alt="" onerror="this.style.display='none'">
+  <div><h1>SANCHAR-NETRA</h1><small>Case PS03-DEMO-001 · Operation Mirage</small></div>
+  <div class="sp"></div>
+  <span class="badge">SYNTHETIC DATA · HACKATHON PROTOTYPE</span>
+  <label style="font-size:12px;color:#b9c8e6">Role&nbsp;
+    <select id="role"><option value="inv">Investigating Officer</option><option value="rev">Reviewing Officer</option><option value="adm">Administrator</option></select></label>
+  <span style="font-size:12.5px;color:#b9c8e6" id="who">RJ-IO-0421</span>
+  <a href="../index.html" style="color:#ffd9a8;font-size:12.5px;text-decoration:none">Log out</a>
+</div>
+<div class="layout">
+  <nav class="side" id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div id="drawer"></div><div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="console.js"></script>
+</body>
+</html>
