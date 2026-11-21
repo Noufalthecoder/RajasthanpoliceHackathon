@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Problem Research · PS03 · SANCHAR-NETRA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+@page{size:A4;margin:0}
+:root{--navy:#0b2447;--navy2:#13346b;--saf:#ff9933;--grn:#138808;--ink:#16202e;--mut:#5b6778;--line:#dfe5ee;--blue:#1f5bd8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;color:var(--ink);font-size:11.5px;line-height:1.46;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;position:relative;overflow:hidden;page-break-after:always;break-after:page;background:#fff}
+.tri{height:4px;background:linear-gradient(90deg,var(--saf) 33.3%,#fff 33.3% 66.6%,var(--grn) 66.6%)}
+.hd{background:var(--navy);color:#fff;padding:16px 34px 14px}
+.hd .k{font-size:9.6px;letter-spacing:1.6px;color:#ffd9a8;font-weight:700}
+.hd h1{font:700 21px "Source Serif 4",serif;line-height:1.2;margin:3px 0 2px}
+.hd p{color:#b9c8e6;font-size:10.2px}
+.in{padding:14px 34px 34px}
+h2{font:700 14px "Source Serif 4",serif;color:var(--navy);margin:12px 0 5px;display:flex;gap:7px;align-items:center}
+h2 i{font-style:normal;background:var(--saf);color:#1b1200;border-radius:5px;padding:0 7px;font:800 11px Inter}
+p{margin-bottom:5px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:6px 0 4px}
+.st{border:1px solid var(--line);border-left:3px solid var(--saf);border-radius:8px;padding:8px 10px;background:#fafbfe}
+.st b{display:block;font:700 18.5px "Source Serif 4",serif;color:var(--navy);line-height:1.1}
+.st span{font-size:9.6px;color:var(--mut);line-height:1.3;display:block;margin-top:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff}
+.box h3{font-size:11.5px;color:var(--navy);margin-bottom:3px}
+ul{padding-left:12px}li{margin-bottom:2.5px}
+table{width:100%;border-collapse:collapse;font-size:10.5px}
+th{background:#eaf0fb;color:var(--navy);text-align:left;padding:5px 8px;font-weight:700}
+td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.pn{display:inline-block;background:var(--navy);color:#fff;border-radius:50%;width:17px;height:17px;text-align:center;font:700 10px/17px Inter;margin-right:4px}
+.src{font-size:9px;color:var(--mut);line-height:1.38}
+.src a{color:var(--blue);text-decoration:none}
+sup{font-size:7px;color:var(--blue);font-weight:700}
+.note{background:#fff8ee;border-left:3px solid var(--saf);padding:7px 10px;border-radius:0 6px 6px 0;margin:5px 0;font-size:10.5px}
+.inf{color:#8a4b00;font-weight:600}
+.ft{position:absolute;left:0;right:0;bottom:0;height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 34px;font-size:9px;color:var(--mut);border-top:1px solid var(--line);background:#fff}
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<section class="page">
+<div class="tri"></div>
+<div class="hd"><div class="k">PS03 · PROBLEM RESEARCH BRIEF · CYBER SECURITY HACKATHON 2026</div>
+<h1>Why CDR / IPDR investigation is slow, error-prone and hard to defend</h1>
+<p>Research behind SANCHAR-NETRA · Team HackCrew · compiled 21 Nov 2026 from government, court, standards and industry sources (numbered links on page 2)</p></div>
+<div class="in">
+
+<h2><i>1</i> The problem in one paragraph</h2>
+<p>Call Detail Records (CDR) and IP Detail Records (IPDR) are among the most common evidence sources in cyber-fraud and conventional cases, because every call, SMS and internet session leaves a record at the operator. The difficulty is not getting the data; it is <b>turning it into verified, court-defensible leads quickly</b>. Operators deliver different layouts, files run to thousands of rows, internet sessions hide behind shared public IPs, tower data only gives an approximate area, and since July 2024 electronic records need a formal certificate with a hash value to be admitted. Investigators still do much of this by hand<sup>[7][8]</sup>, while reported cyber fraud keeps rising year on year.</p>
+
+<h2><i>2</i> Why it matters now: the scale of the crime</h2>
+<div class="stats">
+ <div class="st"><b>₹22,845 cr</b><span>lost to cyber fraud in India in 2024, up 206% from ₹7,465 cr in 2023<sup>[1]</sup></span></div>
+ <div class="st"><b>22.68 lakh</b><span>cybercrime cases registered nationally in 2024 (+42%), NCRP data<sup>[2]</sup></span></div>
+ <div class="st"><b>1.00 → 1.28 lakh</b><span>Rajasthan cyber complaints, 2024 → 2025 (+27.7%), per reports of police data<sup>[3]</sup></span></div>
+ <div class="st"><b>~13%</b><span>of Rajasthan’s ₹795.9 cr reported 2024 fraud was put on hold (₹104.6 cr). <span class="inf">Our calculation</span><sup>[3]</sup></span></div>
+</div>
+<p>The last figure is the one that matters for this problem: defrauded money is easiest to freeze early (our reasoning), so <b>the speed at which an investigator can connect a number, a handset, a tower and an IP to a suspect plausibly affects what can be frozen or traced</b>. (Rajasthan figures come from news reports citing police data; verify against official releases before quoting.)</p>
+
+<h2><i>3</i> How the evidence reaches the investigator</h2>
+<div class="two">
+ <div class="box"><h3>What exists</h3><ul>
+  <li><b>Retention:</b> since Dec 2021 licensed operators must keep CDR, EDR and IPDR for at least <b>two years</b> (previously one)<sup>[4]</sup>.</li>
+  <li><b>Request route:</b> records are sought through the court or the police station in-charge under <b>Section 94 BNSS</b> (successor to Section 91 CrPC); the Rajasthan High Court has read telecom authorities into the related Section 95<sup>[9]</sup>.</li>
+  <li><b>IPDR structure:</b> DoT’s Nov 2021 IPDR format lists source IP and port, NAT-translated IP and port, destination IP and port, and start/end times<sup>[5]</sup>.</li></ul></div>
+ <div class="box"><h3>What arrives in practice</h3><ul>
+  <li><b>Different formats per operator:</b> times in AM/PM vs 24-hour, durations in seconds vs hh:mm:ss<sup>[6]</sup>; numbers with or without country code<sup>[7]</sup>.</li>
+  <li><b>Spreadsheets with very large row counts</b>, often hundreds of thousands (vendor description)<sup>[7]</sup>.</li>
+  <li><b>Manual handling:</b> a comparable Punjab (Pakistan) programme records that CDR analysis for major crimes was earlier done by hand in Excel, “time-consuming and prone to errors”<sup>[8]</sup>; Indian police are turning to AI for IPDR because manual review takes considerable time<sup>[10]</sup>.</li></ul></div>
+</div>
+
+<h2><i>4</i> The core pain points (what an investigator actually hits)</h2>
+<table>
+<tr><th style="width:24%">Pain point</th><th>What the research shows</th></tr>
+<tr><td><span class="pn">1</span><b>Format chaos and volume</b></td><td>Every operator’s file differs, so merging two suspects’ data means cleaning dates, durations, number formats and duplicates before any analysis is reliable<sup>[6][7]</sup>. Existing tools are described in an Indian academic paper as often expensive, expert-dependent and poorly adapted to regional data formats<sup>[11]</sup>.</td></tr>
+<tr><td><span class="pn">2</span><b>Shared IPs hide the subscriber</b></td><td>Under carrier-grade NAT, one public IP is shared by many users for short periods, so attribution needs the <b>source port, an exact timestamp and the operator’s NAT/AAA logs</b> together<sup>[12]</sup>. Without the source port and exact time, law-enforcement progress is described as “highly unlikely”<sup>[13]</sup>. An IP alone is not an identity.</td></tr>
+<tr><td><span class="pn">3</span><b>Location is approximate, not a pin</b></td><td>In <i>Rahil v. State (NCT of Delhi)</i> (2025 INSC 858) the Supreme Court said tower data shows only which tower a phone connected to and gives an <b>approximate area, not the exact site</b>, called it hazardous to rely on it alone to prove presence, and noted no evidence had been led on the tower’s range<sup>[14]</sup>. Tools that draw a confident “suspect was here” dot invite exactly this challenge.</td></tr>
+</table>
+
+</div>
+<div class="ft"><span>SANCHAR-NETRA · PS03 problem research · Team HackCrew</span><span>Page 1 of 2</span></div>
+</section>
+
+<!-- ============ PAGE 2 ============ -->
+<section class="page">
+<div class="tri"></div>
+<div class="in" style="padding-top:16px">
+
+<table>
+<tr><th style="width:24%">Pain point</th><th>What the research shows</th></tr>
+<tr><td><span class="pn">4</span><b>Admissibility needs proof of integrity</b></td><td>Section 63 of the Bharatiya Sakshya Adhiniyam replaced Section 65B from 1 July 2024; electronic records need a certificate, and the certificate must disclose a <b>hash value</b><sup>[15]</sup>. In <i>Rahil</i> the Court also held CDRs needed the certificate to be admissible<sup>[14]</sup>. Admission is not proof: the court still weighs what the record shows.</td></tr>
+<tr><td><span class="pn">5</span><b>Links across suspects are hard by eye</b></td><td><span class="inf">Our analysis (no direct source):</span> a number shared by two suspects, a night-time burst, a handset swap or two phones on one tower within minutes sit in different files and columns; finding them by filtering means knowing in advance what to look for.</td></tr>
+<tr><td><span class="pn">6</span><b>Defensibility of AI output</b></td><td><span class="inf">Our analysis:</span> given points 3 and 4, any AI statement that cannot be traced to a source row, or that reads as a conclusion, creates risk for the officer and the case. The Delhi and Rajasthan High Courts have also stressed preserving and producing call and tower records for the defence<sup>[9][16]</sup>, which makes traceability a two-sided requirement.</td></tr>
+</table>
+
+<h2><i>5</i> What this means for the solution (research → design)</h2>
+<table>
+<tr><th style="width:27%">Finding</th><th style="width:37%">Design response in SANCHAR-NETRA</th><th>Where visible</th></tr>
+<tr><td>Formats differ and are messy</td><td>Operator profiles, column mapping, normalisation and a validation report that counts every fix</td><td>Import &amp; validation screen</td></tr>
+<tr><td>Shared public IPs</td><td>Resolve by IP + port + time; list the other subscribers ruled out; never treat IP alone as conclusive</td><td>IPDR lookup</td></tr>
+<tr><td>Tower data is approximate</td><td>Show towers as areas and sequences; flag same-tower windows as leads; label inferences “to be verified”</td><td>Map, co-location, assistant wording</td></tr>
+<tr><td>Integrity and admissibility</td><td>SHA-256 of every source file, raw row one click from any claim, report built only from verified items. <b>It supports, but does not replace, the Section 63 certificate</b></td><td>Evidence drawer, report</td></tr>
+<tr><td>Over-trust in AI</td><td>AI proposes, code computes, officer verifies; refusals when data is missing; role gate and audit log</td><td>Assistant, basket, audit log</td></tr>
+</table>
+
+<h2><i>6</i> Limits of this research (stated plainly)</h2>
+<div class="note"><ul style="margin-bottom:0">
+ <li>No independent Indian study quantifying investigation time lost to manual CDR analysis was found; the “manual, slow” point rests on a Pakistan case study, news reporting and vendor material, and should be presented as <b>indicative, not measured</b>.</li>
+ <li>Rajasthan 2024–25 figures come from news reports of police statements; national figures are from Parliament replies as reported in the press. Exact dates of the DoT amendments vary slightly between sources. Verify against the primary documents before quoting.</li>
+ <li>Legal points (BNSS, BSA, <i>Rahil</i>) are summarised from judgments and commentary for engineering context. They are <b>not legal advice</b>; the Section 94 BNSS procedure itself was not retrieved from statute text.</li></ul></div>
+
+<h2><i>7</i> Sources</h2>
+<div class="src">
+[1] <a href="https://scroll.in/latest/1084796/indians-lost-rs-22845-crore-to-cyber-fraud-in-2024-a-206-rise-from-previous-year-centre">Scroll: Indians lost ₹22,845 crore to cyber fraud in 2024, a 206% rise (Lok Sabha reply)</a> ·
+[2] <a href="https://www.ibtimes.co.in/over-22-6-lakh-cyber-crimes-registered-over-rs-22845-crore-lost-by-citizens-2024-centre-893487">IBTimes: 22.68 lakh cyber crimes registered in 2024</a> ·
+[3] <a href="https://the420.in/?p=119668">The420: Rajasthan ₹768 crore lost in 2025 (2024 comparison)</a>; <a href="https://www.pinkcitypost.com/raj-ranks-5th-nationwide-in-freezing-defrauded-money-in-2025/">Pink City Post: Rajasthan freezing ranking</a> ·
+[4] <a href="https://dot.gov.in/sites/default/files/21122021%20UL%20CDR%20two%20years.pdf?download=1">DoT letter 21.12.2021: CDR/IPDR retention two years</a>; <a href="https://business-standard.com/amp/article/economy-policy/govt-mandates-telcos-to-keep-call-data-internet-usage-record-for-2-years-121122400383_1.html">Business Standard coverage</a> ·
+[5] <a href="https://dotws.cdot.in/sites/default/files/Revised%20IPDR%20fromat%2016-11-21.pdf?download=1">DoT revised IPDR format, 16 Nov 2021</a> ·
+[6] <a href="https://ccjr.cse.iitk.ac.in/opapers/Using%20Telecom%20for%20Covid%20Tracing.pdf">IIT Kanpur: Using telecom data for COVID-19 contact tracing (format differences)</a> ·
+[7] <a href="https://www.cognyte.com/blog/cdr-analysis-software/">Cognyte: CDR analysis software</a>; <a href="https://policinginsight.com/feature/analyzing-call-detail-records-with-connected-data/">Policing Insight: analysing CDRs with connected data</a> (vendor sources) ·
+[8] <a href="https://pitb.gov.pk/cdrca">PITB (Punjab, Pakistan): CDR analysis programme</a> ·
+[9] <a href="https://www.verdictum.in/amp/court-updates/high-courts/rajasthan-high-court-2024-rj-jd-36831-malaram-v-state-of-rajasthan-postal-authority-must-include-telecom-authority-1553488">Verdictum: Malaram v. State of Rajasthan (Sec. 95 BNSS and telecom authority)</a> ·
+[10] <a href="https://telanganatoday.com/how-ipdr-is-transforming-cybercrime-investigations-in-india">Telangana Today: how IPDR is transforming cybercrime investigations</a> ·
+[11] <a href="https://granthaalayahpublication.org/Arts-Journal/ShodhKosh/article/download/1665/1218/16280">ShodhKosh: CDR/IPDR analysis tools (Indian academic paper)</a> ·
+[12] <a href="https://www.baesystems.com/en-uk/insight/understanding-the-complexities-of-ip-address-retention-and-traceability-in-telecoms">BAE Systems: IP address retention and traceability</a> ·
+[13] <a href="https://datatracker.ietf.org/doc/html/draft-daveor-cgn-logging-04">IETF draft: logging recommendations for carrier-grade NAT</a> ·
+[14] <a href="https://www.verdictum.in/court-updates/supreme-court/rahil-anr-v-state-govt-of-nct-of-delhi-neutral-citation2025-insc-858--1585357">Verdictum: Rahil v. State (NCT of Delhi), 2025 INSC 858</a> ·
+[15] <a href="https://www.livelaw.in/articles/bharatiya-sakshya-adhiniyam-transformed-digital-evidence-552681">LiveLaw: how the BSA has transformed digital evidence</a> (Section 63) ·
+[16] <a href="https://www.barandbench.com/news/fair-trial-over-privacy-rajasthan-high-court-allows-ndps-accuseds-plea-for-cdr-tower-location-of-police-officer">Bar &amp; Bench: Rajasthan HC on CDR/tower location for defence</a>
+</div>
+
+</div>
+<div class="ft"><span>SANCHAR-NETRA · PS03 problem research · Team HackCrew</span><span>Page 2 of 2</span></div>
+</section>
+</body>
+</html>
