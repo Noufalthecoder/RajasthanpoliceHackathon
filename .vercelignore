@@ -1,0 +1,9 @@
+tools/
+docs/
+wireframe/
+data/
+.cache/
+.env
+.env.*
+project.md
+README.md
