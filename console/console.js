@@ -14,6 +14,7 @@
   function toast(m) { const t = $("#toast"); t.textContent = tl(m); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2200); }
   const ev = id => E.chips(db, [id]);
   const evs = ids => E.chips(db, ids);
+  const evl = ids => { ids = [...new Set(ids)].filter(id => db.ev[id]); return ids.length === 1 ? ev(ids[0]) : ids.length ? `<button class="evbtn" data-evlist="${ids.join(",")}">🔗 ${ids.length} records</button>` : ""; };
   const tName = id => db.towerById[id] ? `${db.towerById[id].area_name} (${id})` : (id || "unknown");
   const num = n => `<span style="white-space:nowrap">${E.pretty(n)}</span>`;
   const label = n => E.label(db, n);
@@ -133,7 +134,7 @@
       <div class="card"><h3>Activity by day <span class="mut">(night share in saffron)</span></h3>${(() => { const mx = Math.max(...days.map(d => dly[d].total)); return `<div class="bars">${days.map(d => `<div style="height:${dly[d].total / mx * 100}%;background:linear-gradient(0deg,var(--saffron) ${dly[d].night / dly[d].total * 100}%,var(--navy2) 0)" title="${d} · ${dly[d].total} (${dly[d].night} night)"></div>`).join("")}</div><div class="axis">${days.map(d => `<span>${d.slice(8)}</span>`).join("")}</div>`; })()}</div></div>
       <div class="card"><h3>Contacts ranked by interactions</h3><div class="scroll"><table><tr><th>#</th><th>Number</th><th>Total</th><th>Calls</th><th>SMS</th><th>Duration</th><th>Out/In</th><th>Night</th><th>First → last</th><th>Signals</th><th>Evidence</th></tr>
       ${c.slice(0, 15).map((x, i) => `<tr><td>${i + 1}</td><td>${num(x.num)}</td><td><b>${x.total}</b></td><td>${x.voice}</td><td>${x.sms}</td><td>${E.hms(x.dur)}</td><td>${x.out}/${x.in}</td><td>${x.night}</td><td>${E.fmt(x.first).slice(5, 16)} → ${E.fmt(x.last).slice(5, 16)}</td>
-        <td>${common.has(x.num) ? '<span class="tag t-red">shared with other suspect</span> ' : ""}${x.flags.map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evs(x.recs.map(r => r.id))}</td></tr>`).join("")}</table></div></div>`; };
+        <td>${common.has(x.num) ? '<span class="tag t-red">shared with other suspect</span> ' : ""}${x.flags.map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evl(x.recs.map(r => r.id))}</td></tr>`).join("")}</table></div></div>`; };
       $("#ps").onchange = draw; draw(); } });
 
   VIEWS.graph = () => ({
@@ -151,8 +152,8 @@
         ["A", "B"].forEach(w => E.contacts(db, w).forEach(c => {
           if (c.num === db.A || c.num === db.B) return; const sh = shared.has(c.num);
           if (only && !sh) return; if (c.total < min && !sh) return;
-          addN(c.num, { label: E.pretty(c.num).slice(3), shape: "dot", size: 8 + Math.min(c.total, 60) * .45, color: sh ? { background: "#e53935", border: "#8a1c1c" } : { background: "#9aa7bd", border: "#5b6778" }, font: { size: 11 } });
-          const id = w + "|" + c.num; meta[id] = { owner: SUBJ[w](), c }; edges.push({ id, from: SUBJ[w](), to: c.num, value: c.total, label: String(c.total), color: { color: sh ? "#e53935" : "#b8c2d6" }, font: { size: 10, align: "middle" } });
+          addN(c.num, { label: (sh || c.total >= 30) ? E.pretty(c.num).slice(3) : undefined, title: `${E.pretty(c.num)} · ${c.total} interactions`, shape: "dot", size: 8 + Math.min(c.total, 60) * .45, color: sh ? { background: "#e53935", border: "#8a1c1c" } : { background: "#9aa7bd", border: "#5b6778" }, font: { size: 11 } });
+          const id = w + "|" + c.num; meta[id] = { owner: SUBJ[w](), c }; edges.push({ id, from: SUBJ[w](), to: c.num, value: c.total, title: `${label(SUBJ[w]())} ↔ ${E.pretty(c.num)}: ${c.total} interactions`, color: { color: sh ? "#e53935" : "#b8c2d6" }, font: { size: 10, align: "middle" } });
         }));
         const dir = E.direct(db); if (dir.length) { meta["direct"] = { direct: true }; edges.push({ id: "direct", from: db.A, to: db.B, value: dir.length, label: dir.length + " " + (window.Lang ? Lang.t("direct") : "direct"), dashes: true, color: { color: "#ff9933" }, font: { size: 10 } }); }
         if (graph) graph.destroy();
@@ -174,7 +175,7 @@
       <div class="grid g3" style="margin-bottom:16px"><div class="kpi"><b>${onlyA}</b><span>contacts only in Suspect A's records</span></div><div class="kpi" style="border-color:#e53935"><b style="color:#c62828">${c.length}</b><span>contacts common to both</span></div><div class="kpi"><b>${onlyB}</b><span>contacts only in Suspect B's records</span></div></div>
       <div class="card"><h3>Common numbers</h3><div class="scroll"><table><tr><th>Number</th><th>A interactions</th><th>B interactions</th><th>A night</th><th>B night</th><th>Signals</th><th>Evidence</th><th></th></tr>
       ${c.map(x => { const t = `${E.pretty(x.num)} appears in both datasets: A ${x.a.total} interactions, B ${x.b.total}.`, ids = [...x.a.recs.map(r => r.id), ...x.b.recs.map(r => r.id)];
-        return `<tr><td>${num(x.num)}</td><td><b>${x.a.total}</b> <span class="mut">(${x.a.voice} calls)</span></td><td><b>${x.b.total}</b> <span class="mut">(${x.b.voice} calls)</span></td><td>${x.a.night}</td><td>${x.b.night}</td><td>${[...x.a.flags, ...x.b.flags].map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evs(ids)}</td><td>${addBtn(t, ids, "common-numbers")}</td></tr>`; }).join("")}</table></div></div>
+        return `<tr><td>${num(x.num)}</td><td><b>${x.a.total}</b> <span class="mut">(${x.a.voice} calls)</span></td><td><b>${x.b.total}</b> <span class="mut">(${x.b.voice} calls)</span></td><td>${x.a.night}</td><td>${x.b.night}</td><td>${[...x.a.flags, ...x.b.flags].map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evl(ids)}</td><td>${addBtn(t, ids, "common-numbers")}</td></tr>`; }).join("")}</table></div></div>
       <div class="card"><h3>Direct Suspect A ↔ Suspect B contact</h3><p>${dir.length} records in A's file${dir.length ? ` between ${E.fmt(dir[0].ts)} and ${E.fmt(dir[dir.length - 1].ts)}` : ""}.</p><div class="scroll" style="max-height:220px"><table><tr><th>Time</th><th>Type</th><th>Duration</th><th>Tower</th><th>Evidence</th></tr>${dir.map(r => `<tr><td>${E.fmt(r.ts)}</td><td>${r.dir} ${r.kind}</td><td>${r.dur}s</td><td>${tName(r.tower)}</td><td>${ev(r.id)}</td></tr>`).join("")}</table></div></div>` };
   };
 
@@ -188,27 +189,37 @@
       $("#md").innerHTML = `<option value="">All days (usage)</option>` + days.map(d => `<option ${co.some(g => g.day === d) ? 'data-co="1"' : ""} value="${d}">${d}${co.some(g => g.day === d) ? "  ⚠ co-location" : ""}</option>`).join("");
       $("#ms").value = "both";
       map = map ? (map.remove(), null) : null; map = L.map("map").setView([26.89, 75.80], 11);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap contributors" }).addTo(map);
+      const carto = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Tiles © Esri" });
+      const osmL = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(map);
+      const satL = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" });
+      L.control.layers({ "Street map (OpenStreetMap)": osmL, "Esri streets": carto, "Satellite": satL }, {}, { position: "topright" }).addTo(map);
+      L.control.scale({ imperial: false, position: "bottomright" }).addTo(map);
+      const legend = L.control({ position: "bottomleft" });
+      legend.onAdd = () => { const d = L.DomUtil.create("div"); d.style.cssText = "background:#fffffff2;border-radius:10px;padding:8px 11px;font:12px Inter,sans-serif;box-shadow:0 2px 10px #0002;line-height:1.7"; d.innerHTML = `<b>${tl("Legend")}</b><br><span style="color:#1f5bd8">●</span> ${tl("Suspect A")} &nbsp; <span style="color:#e67e00">●</span> ${tl("Suspect B")}<br><span style="color:#c62828">◯</span> ${tl("Shared cell-site activity")}<br><span style="color:#13346b">◔</span> ${tl("Approximate antenna coverage")}`; return d; };
+      legend.addTo(map);
+      map.fitBounds(db.towers.map(t => [t.lat, t.lon]), { padding: [40, 40] });
       const layer = L.layerGroup().addTo(map); let timer = null;
       const colors = { A: "#1f5bd8", B: "#e67e00" };
+      const wedge = (t, color) => { const R = 1400, az = +t.azimuth_deg || 0, pts = [[t.lat, t.lon]]; for (let a = az - 60; a <= az + 60; a += 10) { const th = a * Math.PI / 180; pts.push([t.lat + R * Math.cos(th) / 111320, t.lon + R * Math.sin(th) / (111320 * Math.cos(t.lat * Math.PI / 180))]); } return L.polygon(pts, { color, weight: 1, fillColor: color, fillOpacity: .13, interactive: false }); };
+      const towerPopup = (t, extra) => `<div style="min-width:225px"><b style="font-size:14px">${t.area_name}</b><div style="color:#5b6778;font-size:12px;margin-bottom:5px">${t.city} · ${tl("Tower")} ${t.tower_id}</div><table style="font-size:12px;border-collapse:collapse"><tr><td style="color:#5b6778;padding:1px 8px 1px 0">${tl("Location")}</td><td>${(+t.lat).toFixed(4)}°N, ${(+t.lon).toFixed(4)}°E</td></tr><tr><td style="color:#5b6778">LAC / Cell</td><td>${t.lac} / ${t.cell_id}</td></tr><tr><td style="color:#5b6778">Airtel CGI</td><td>${t.operator_cgi_airtel}</td></tr><tr><td style="color:#5b6778">Jio CGI</td><td>${t.operator_cgi_jio}</td></tr><tr><td style="color:#5b6778">${tl("Antenna")}</td><td>${t.azimuth_deg}°</td></tr></table>${extra ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #dfe5ee;font-size:12px">${extra}</div>` : ""}<div style="margin-top:6px"><a href="#" data-geo="${t.lat},${t.lon}" style="font-size:12px;color:#1f5bd8;font-weight:600">📍 ${tl("Show street address")}</a><div class="geoout" style="font-size:11.5px;color:#34415a;margin-top:3px"></div></div><div style="font-size:10.5px;color:#8a4b00;margin-top:5px">${tl("Approximate coverage area, not an exact position.")}</div></div>`;
       const draw = () => {
         layer.clearLayers(); const w = $("#ms").value, day = $("#md").value, ws = w === "both" ? ["A", "B"] : [w];
-        db.towers.forEach(t => L.circleMarker([t.lat, t.lon], { radius: 4, color: "#9aa7bd", fillOpacity: .6 }).bindTooltip(`${t.area_name} (${t.tower_id})`).addTo(layer));
+        db.towers.forEach(t => L.circleMarker([t.lat, t.lon], { radius: 5, color: "#fff", weight: 2, fillColor: "#13346b", fillOpacity: .9 }).bindTooltip(`${t.area_name} · ${t.tower_id}`).bindPopup(towerPopup(t)).addTo(layer));
         const stays = {}; ws.forEach(x => stays[x] = E.stays(db, x, day || null));
         const maxStep = day ? Math.max(...ws.map(x => stays[x].length)) : 0; const st = $("#mstep"); st.max = maxStep; if (+st.value > maxStep) st.value = maxStep;
-        if (!day) { ws.forEach(x => E.towerUse(db, x).forEach(u => { const t = db.towerById[u.tower]; L.circleMarker([t.lat, t.lon], { radius: 5 + Math.sqrt(u.n) * 2.2, color: colors[x], fillOpacity: .35, weight: 2 }).bindPopup(`<b>${t.area_name}</b><br>${tl(label(SUBJ[x]()))}: ${tl("records")} ${u.n} · ${tl("days")} ${u.days.size}`).addTo(layer); })); $("#mlab").textContent = tl("Circle size = number of records"); }
+        if (!day) { ws.forEach(x => E.towerUse(db, x).forEach(u => { const t = db.towerById[u.tower]; L.circleMarker([t.lat, t.lon], { radius: 5 + Math.sqrt(u.n) * 2.2, color: colors[x], fillOpacity: .35, weight: 2 }).bindPopup(towerPopup(t, `<b>${tl(label(SUBJ[x]()))}</b>: ${tl("records")} ${u.n} · ${tl("days")} ${u.days.size}`)).addTo(layer); wedge(t, colors[x]).addTo(layer); })); $("#mlab").textContent = tl("Circle size = number of records"); }
         else {
           const step = +st.value || maxStep; $("#mlab").textContent = `${tl("Step")} ${step} / ${maxStep}`;
           ws.forEach(x => { const s = stays[x].slice(0, step), pts = s.map(y => [db.towerById[y.tower].lat, db.towerById[y.tower].lon]); if (pts.length > 1) L.polyline(pts, { color: colors[x], weight: 3, dashArray: x === "B" ? "6 6" : null }).addTo(layer);
-            s.forEach((y, i) => L.marker(pts[i], { icon: L.divIcon({ className: "", html: `<div style="background:${colors[x]};color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font:700 11px Inter;border:2px solid #fff;box-shadow:0 1px 4px #0006">${i + 1}</div>` }) }).bindPopup(`<b>${tl(label(SUBJ[x]()))}</b><br>${tName(y.tower)}<br>${E.fmt(y.start).slice(11, 16)}–${E.fmt(y.end).slice(11, 16)}`).addTo(layer)); });
-          co.filter(g => g.day === day).forEach(g => { const t = db.towerById[g.tower]; L.circle([t.lat, t.lon], { radius: 700, color: "#c62828", fillColor: "#e53935", fillOpacity: .15, weight: 3 }).bindPopup(`<b>${tl("Shared cell-site activity")}</b><br>${t.area_name} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}`).addTo(layer); });
+            s.forEach((y, i) => L.marker(pts[i], { icon: L.divIcon({ className: "", html: `<div style="background:${colors[x]};color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font:700 11px Inter;border:2px solid #fff;box-shadow:0 1px 4px #0006">${i + 1}</div>` }) }).bindPopup(towerPopup(db.towerById[y.tower], `<b>${tl(label(SUBJ[x]()))}</b> · ${E.fmt(y.start).slice(11, 16)}–${E.fmt(y.end).slice(11, 16)}`)).addTo(layer)); if (s.length) wedge(db.towerById[s[s.length - 1].tower], colors[x]).addTo(layer); });
+          co.filter(g => g.day === day).forEach(g => { const t = db.towerById[g.tower]; L.circle([t.lat, t.lon], { radius: 700, color: "#c62828", fillColor: "#e53935", fillOpacity: .15, weight: 3 }).bindPopup(towerPopup(t, `<b>${tl("Shared cell-site activity")}</b> · ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}`)).addTo(layer); });
         }
         const rows = []; ws.forEach(x => stays[x].forEach(y => rows.push({ x, y })));
         $("#mtl").innerHTML = `<div class="grid g2"><div class="card"><h3>${day ? "Tower sequence on " + day : "Most-used towers"}</h3><div class="scroll"><table>` + (day
-          ? `<tr><th>Who</th><th>Tower</th><th>From</th><th>To</th><th>Records</th><th>Ev</th></tr>` + rows.sort((p, q) => p.y.start - q.y.start).map(({ x, y }) => `<tr><td>${x}</td><td>${tName(y.tower)}</td><td>${E.fmt(y.start).slice(11, 16)}</td><td>${E.fmt(y.end).slice(11, 16)}</td><td>${y.n}</td><td>${ev(y.recs[0].id)}</td></tr>`).join("")
+          ? `<tr><th>Who</th><th>Tower</th><th>From</th><th>To</th><th>Records</th><th>Ev</th></tr>` + rows.sort((p, q) => p.y.start - q.y.start).map(({ x, y }) => `<tr><td>${x}</td><td>${tName(y.tower)}</td><td>${E.fmt(y.start).slice(11, 16)}</td><td>${E.fmt(y.end).slice(11, 16)}</td><td>${y.n}</td><td>${evl(y.recs.map(r => r.id))}</td></tr>`).join("")
           : `<tr><th>Who</th><th>Tower</th><th>Records</th><th>Days</th><th>Night use</th></tr>` + ws.flatMap(x => E.towerUse(db, x).slice(0, 6).map(u => `<tr><td>${x}</td><td>${tName(u.tower)}</td><td>${u.n}</td><td>${u.days.size}</td><td>${u.nightN}</td></tr>`)).join("")) + `</table></div></div>
           <div class="card"><h3>Shared cell-site activity (±15 min)</h3>${co.length ? co.map(g => { const t = `Shared cell-site activity: both suspects’ records used ${tName(g.tower)} on ${g.day} between ${E.fmt(g.from).slice(11, 16)} and ${E.fmt(g.to).slice(11, 16)} (${g.a.length} records for A, ${g.b.length} for B).`, ids = [...g.a.map(r => r.id), ...g.b.map(r => r.id)];
-          return `<div class="f"><b>${tName(g.tower)}</b> · ${g.day} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}<br>${evs(ids)} <button class="btn sm alt" data-showday="${g.day}">Show on map</button> ${addBtn(t, ids, "co-location")}</div>`; }).join("") : '<p class="mut">None found.</p>'}</div></div>`;
+          return `<div class="f"><b>${tName(g.tower)}</b> · ${g.day} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}<br>${evl(ids)} <button class="btn sm alt" data-showday="${g.day}">Show on map</button> ${addBtn(t, ids, "co-location")}</div>`; }).join("") : '<p class="mut">None found.</p>'}</div></div>`;
       };
       $("#ms").onchange = $("#md").onchange = () => { $("#mstep").value = 0; draw(); }; $("#mstep").oninput = draw;
       $("#mplay").onclick = () => { if (timer) { clearInterval(timer); timer = null; $("#mplay").textContent = "▶ Play"; return; } const st = $("#mstep"); st.value = 0; $("#mplay").textContent = "⏸ Pause"; timer = setInterval(() => { if (+st.value >= +st.max) { clearInterval(timer); timer = null; $("#mplay").textContent = "▶ Play"; return; } st.value = +st.value + 1; draw(); }, 900); };
@@ -303,8 +314,12 @@
 
   /* ---------- global events ---------- */
   document.addEventListener("click", e => {
-    const t = e.target.closest("[data-tab],[data-evlist],[data-ev],[data-add],[data-ask],[data-ver],[data-rej],[data-del],[data-showday]"); if (!t) { return; }
-    if (t.dataset.tab) go(t.dataset.tab);
+    const t = e.target.closest("[data-geo],[data-tab],[data-evlist],[data-ev],[data-add],[data-ask],[data-ver],[data-rej],[data-del],[data-showday]"); if (!t) { return; }
+    if (t.dataset.geo) {
+      e.preventDefault(); const [la, lo] = t.dataset.geo.split(","), out = t.parentElement.querySelector(".geoout"); out.textContent = "…";
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=en&lat=${la}&lon=${lo}`).then(r => r.json()).then(j => { out.textContent = j.display_name || "No address found for this point."; }).catch(() => { out.textContent = "Address lookup needs internet access."; });
+    }
+    else if (t.dataset.tab) go(t.dataset.tab);
     else if (t.dataset.evlist) openEvList(t.dataset.evlist.split(","));
     else if (t.dataset.ev) openEv(t.dataset.ev);
     else if (t.dataset.add) { const o = JSON.parse(t.dataset.add); basket.push({ html: o.html, ev: o.ev, src: o.src, status: "AI observation", at: new Date().toISOString().slice(0, 16).replace("T", " "), by: who() }); store.set("sn_basket", basket); log("BASKET_ADD", o.src); renderNav(); toast("Added to evidence basket (pending verification)"); t.disabled = true; t.textContent = "✔ Added"; }
