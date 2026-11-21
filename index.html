@@ -185,7 +185,7 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
 <div class="util">
   <div class="wrap">
     <div>🇮🇳 &nbsp;राजस्थान पुलिस · Rajasthan Police &nbsp;|&nbsp; Cyber Security Hackathon 2026</div>
-    <div><a href="#">Skip to main content</a><a href="#">A-</a><a href="#">A</a><a href="#">A+</a><a href="#">हिन्दी / English</a></div>
+    <div><a href="#">Skip to main content</a><a href="#">A-</a><a href="#">A</a><a href="#">A+</a><select id="lang" aria-label="Language" class="no-tr" style="margin-left:16px;background:#13346b;color:#fff;border:1px solid #3b5f9c;border-radius:6px;padding:2px 6px;font:inherit;font-size:12px"></select></div>
   </div>
 </div>
 
@@ -373,5 +373,10 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
     </div>
   </div>
 </footer>
+<script src="console/lang.js"></script>
+<script>
+  Lang.mount(document.getElementById("lang"), function () { Lang.translateDom(document.body).catch(function () { alert("Translation unavailable. Start the local server: python tools/serve.py"); }); })
+    .then(function (ok) { if (ok && Lang.on()) Lang.translateDom(document.body); });
+</script>
 </body>
 </html>

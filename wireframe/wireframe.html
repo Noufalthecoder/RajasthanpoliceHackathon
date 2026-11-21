@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SANCHAR-NETRA · Wireframe &amp; Screen Specification</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+@page{size:1280px 720px;margin:0}
+:root{--navy:#0b2447;--navy2:#13346b;--saf:#ff9933;--grn:#138808;--ink:#16202e;--mut:#5b6778;--line:#dfe5ee;--bg:#f4f6fa;--blue:#1f5bd8}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff;font-family:Inter,system-ui,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:1280px;height:720px;position:relative;overflow:hidden;page-break-after:always;break-after:page;background:var(--bg)}
+.tri{height:5px;background:linear-gradient(90deg,var(--saf) 33.3%,#fff 33.3% 66.6%,var(--grn) 66.6%)}
+.hd{height:52px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 34px;gap:14px}
+.hd .no{background:var(--saf);color:#1b1200;font-weight:800;border-radius:6px;padding:2px 9px;font-size:13px}
+.hd h2{font:700 20px "Source Serif 4",serif;letter-spacing:.2px}
+.hd .sp{flex:1}.hd small{color:#9fb3d9;font-size:11.5px}
+.ft{position:absolute;left:0;right:0;bottom:0;height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 34px;font-size:10.5px;color:var(--mut);border-top:1px solid var(--line);background:#fff}
+.body{position:absolute;top:57px;left:0;right:0;bottom:26px;padding:20px 34px}
+/* screen page */
+.scr{display:grid;grid-template-columns:790px 1fr;gap:22px;height:100%}
+.frame{position:relative;width:790px;height:494px;border:1px solid #b9c4d8;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(11,36,71,.14)}
+.frame img{width:100%;height:100%;object-fit:cover;display:block}
+.co{position:absolute;width:24px;height:24px;border-radius:50%;background:var(--saf);color:#1b1200;border:2px solid #fff;font:800 12px Inter;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.45);transform:translate(-50%,-50%)}
+.cap{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--mut)}
+.cap b{color:var(--navy)}
+.side h3{font:700 11px Inter;letter-spacing:1.3px;text-transform:uppercase;color:var(--blue);margin:0 0 5px}
+.side .purpose{font-size:13px;line-height:1.45;margin-bottom:11px;color:var(--ink)}
+.notes{list-style:none;margin-bottom:11px}
+.notes li{display:flex;gap:9px;font-size:11.8px;line-height:1.38;margin-bottom:6px}
+.notes li i{flex:0 0 20px;height:20px;border-radius:50%;background:var(--saf);color:#1b1200;font:800 11px Inter;display:grid;place-items:center;font-style:normal;margin-top:1px}
+.chips span{display:inline-block;border-radius:99px;font-size:10.5px;font-weight:700;padding:2px 9px;margin:0 4px 4px 0}
+.rq{background:#e7efff;color:#0b3a8f}.st{background:#e6f5e9;color:#14562a}.pl{background:#eef1f6;color:#46536a}
+.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:11.5px;line-height:1.4}
+.box b{color:var(--navy)}
+/* generic */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card h4{font-size:13px;color:var(--navy);margin-bottom:6px}
+table.t{width:100%;border-collapse:collapse;font-size:11.5px}
+table.t th{background:#eaf0fb;color:var(--navy);text-align:left;padding:6px 8px}
+table.t td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--navy)}
+.dot.o{background:#fff;border:2px solid var(--navy)}.dot.h{background:linear-gradient(90deg,var(--navy) 50%,#fff 50%);border:2px solid var(--navy)}
+.lo{background:#fff;border:2px dashed #9aa7bd;border-radius:8px;padding:8px;font-size:11px;color:#46536a}
+.lo .bar{height:10px;background:#d9e0ec;border-radius:4px;margin:5px 0}
+.lo .blk{background:#e8edf6;border-radius:6px;padding:6px;margin:5px 0;text-align:center;font-weight:600;color:#46536a}
+.arrow{font-size:22px;color:var(--saf);font-weight:800;align-self:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const TOTAL = 23; let pageNo = 0;
+const hdr = (no, title, sub) => `<div class="tri"></div><div class="hd">${no ? `<span class="no">${no}</span>` : ""}<h2>${title}</h2><span class="sp"></span><small>${sub || ""}</small></div>`;
+const ftr = () => `<div class="ft"><span>SANCHAR-NETRA · Wireframe &amp; screen specification v1.0 · Team HackCrew · PS03</span><span>Synthetic data only · hackathon prototype, not an official Rajasthan Police site · page ${pageNo}/${TOTAL}</span></div>`;
+const page = (title, no, sub, body, cls = "") => { pageNo++; return `<section class="page ${cls}">${hdr(no, title, sub)}<div class="body">${body}</div>${ftr()}</section>`; };
+
+/* ---------- screen definitions (coordinates are pixels in the 1440-wide screenshot) ---------- */
+const S = [
+ { no: "01", t: "Landing & secure sign-in", img: "landing", H: 900, off: 0, route: "index.html", st: "Built", req: ["F9 Security"],
+   p: "The public front door. It builds trust, states the AI rule up front and gates entry by role. Government visual language: tricolour strip, emblem, bilingual name, utility bar.",
+   n: [[720,20,"Always-visible disclaimer: hackathon prototype, synthetic data, not an official site."],[300,120,"Header: emblem, bilingual product name, accessibility utility bar (font size, Hindi / English)."],[460,440,"One-line value proposition and the principle behind it: every finding is backed by evidence."],[1056,330,"Role-based sign-in: role, officer ID, case number, OTP. Every session is logged."],[290,722,"Primary action opens the console; secondary explains the AI assistant."],[450,793,"Trust markers mirror the problem statement: evidence links, verification gate, audit trail, Hindi."]],
+   i: "Sign in opens the console (mock auth in the prototype). “Officer Login” jumps to the form." },
+ { no: "02", t: "Import & validation", img: "import", H: 900, off: 0, route: "console#import", st: "Built", req: ["F1 Import","F7 Evidence"],
+   p: "Format-agnostic import. The operator profile is detected from the header, columns are mapped, values are normalised, and every problem is reported rather than hidden.",
+   n: [[380,195,"Import summary: files, de-duplicated CDR records, IPDR sessions, towers loaded."],[700,283,"Add another file: any CSV in a known layout is detected and merged; unknown layouts are flagged for manual mapping."],[540,398,"Operator profile badge (Airtel CDR, Jio CDR, IPDR) and rows imported vs total."],[800,431,"Validation tags: duplicates removed, numbers normalised to +91, blank IMEIs, imputed durations."],[235,462,"Column mapping table: canonical field to source column, shown per operator."],[1330,462,"Normalisation preview: raw B-party value next to the cleaned number and timestamp."]],
+   i: "Choose File re-imports instantly. SHA-256 of every source file is shown at the bottom for integrity." },
+ { no: "03", t: "Communication patterns", img: "patterns", H: 900, off: 0, route: "console#patterns", st: "Built", req: ["F2 Patterns"],
+   p: "Who a suspect talks to, how much, when, and what looks unusual. Rules are explicit, so an officer can explain every flag.",
+   n: [[355,170,"Suspect selector: switch between the two datasets."],[700,235,"KPIs: records, calls vs SMS, outgoing:incoming ratio, night records, first and last record."],[530,420,"Hourly activity. Saffron bars mark 00:00–05:00 night-time activity."],[1100,420,"Daily activity with the night share shown inside each bar."],[700,640,"Contacts ranked by interactions: calls, SMS, duration, out/in, night count, first to last."],[960,832,"Signals: shared with other suspect, night-time contact, short-lived burst."]],
+   i: "Evidence chips on each row open the underlying source record." },
+ { no: "04", t: "Contact network graph", img: "graph", H: 900, off: 0, route: "console#graph", st: "Built", req: ["F3 Correlation","F2 Patterns"],
+   p: "A relationship map of both suspects and their contacts. Node size shows interactions; red marks a number both suspects contacted.",
+   n: [[460,171,"Filters: minimum interactions and “shared contacts only”."],[760,171,"Legend: Suspect A, Suspect B, shared, other."],[513,333,"Red node: a number contacted by both suspects (the hidden link)."],[667,407,"Suspect nodes; edge labels show interaction counts."],[610,560,"Dashed edge: direct A↔B contact."],[1190,330,"Details panel: click any node or edge to list the underlying records with evidence chips."]],
+   i: "Drag to rearrange, zoom, click for records. Threshold slider keeps large graphs readable." },
+ { no: "05", t: "Common numbers & cross-suspect links", img: "common", H: 900, off: 0, route: "console#common", st: "Built", req: ["F3 Correlation","F7 Evidence"],
+   p: "Numbers that appear in both datasets, plus any direct contact between the suspects. The core lead generator.",
+   n: [[830,195,"Venn-style summary: only A, common to both, only B."],[330,360,"Each shared number with interactions and calls per suspect."],[800,359,"Signals such as night-time contact, taken from the pattern rules."],[1100,359,"Evidence chips: one source row from each suspect's file."],[1350,361,"Add to basket keeps the finding as an AI observation until verified."],[700,567,"Direct A↔B contact list with time, type, duration and tower."]],
+   i: "“＋ Basket” is the bridge from analysis to the verification workflow." },
+ { no: "06", t: "Tower map & movement timeline", img: "map", H: 1250, off: 0, route: "console#map", st: "Built", req: ["F4 Location"],
+   p: "Cell-tower locations on a map. Pick a day to see the tower sequence for each suspect and replay it. Red rings show where both suspects used the same tower.",
+   n: [[350,190,"Suspect selector (A, B or both) and day picker. Days with a co-location are flagged."],[800,191,"Replay slider and Play: animates the movement step by step."],[780,430,"Numbered path: blue = Suspect A, dashed orange = Suspect B."],[828,570,"Red ring: both suspects at the same tower inside 15 minutes (Sanganer Airport)."],[500,800,"Tower sequence table with from/to time, record count and evidence chip."],[1100,780,"Co-location windows with evidence from both files and a “Show on map” shortcut."]],
+   i: "“All days” switches to usage view: circle size equals number of records per tower." },
+ { no: "07", t: "IMEI / SIM change detection", img: "devices", H: 900, off: 0, route: "console#devices", st: "Built", req: ["F4 Device"],
+   p: "Spots handset swaps (new IMEI on the same SIM) and SIM swaps (new IMSI on the same handset). Blank values are skipped, never guessed.",
+   n: [[770,125,"Plain-language rule explaining how each change type is detected."],[520,300,"Every IMEI/IMSI pair seen, with record counts and first/last seen."],[338,428,"Change badge and the old → new identifier, with what stayed the same."],[470,494,"Evidence: last record before and first record after the change."],[1100,300,"Suspect B: a SIM swap on the same handset and number."]],
+   i: "Add to basket from either change." },
+ { no: "08", t: "IPDR lookup (CGNAT-aware)", img: "ipdr", H: 900, off: 0, route: "console#ipdr", st: "Built", req: ["F5 IPDR","F7 Evidence"],
+   p: "A public IP is shared by many subscribers. Only public IP + source port + time identifies one. The screen proves the match and shows who was ruled out.",
+   n: [[630,188,"Query: public IP, source port and date-time (prefilled with the demo incident)."],[640,285,"Match card: the subscriber, session window, destination, service indicator and tower."],[640,420,"Ruled out: other subscribers on the same IP at that time, separated by port."],[640,600,"Service / app indicators from the supplied destination mapping; unmapped stays “unidentified”."]],
+   i: "No port, or no match, produces an honest “data does not support this” message." },
+ { no: "09", t: "Evidence drawer", img: "evidence", H: 900, off: 0, route: "any evidence chip", st: "Built", req: ["F7 Evidence"],
+   p: "Opens from any evidence chip anywhere in the app. Shows the record as the system understood it and exactly as it was uploaded, so an officer can verify a claim in one click.",
+   n: [[1130,68,"Evidence ID: source file and row number (row 1 is the header, matching Excel)."],[1230,200,"Normalised view: cleaned number, timestamps, tower name, service indicator."],[1230,480,"Raw row as uploaded, field by field, blanks shown as “(blank)”."],[1390,31,"Close returns to the analysis. Every open is written to the audit log."]],
+   i: "This is what makes every AI finding checkable." },
+ { no: "10", t: "AI investigation assistant", img: "assistant", H: 1300, off: 150, route: "console#assistant", st: "Built · rule-based planner", req: ["F6 Assistant","F7 Evidence","F8 Support","Hindi"],
+   p: "Ask in English or Hindi. The assistant picks an analysis, the engine computes it, and every finding carries evidence chips. Unsupported questions are refused with a reason.",
+   n: [[893,197,"Question in English or हिन्दी (here: common numbers between both suspects)."],[1050,257,"Findings with numbers computed by the engine, never by the language model."],[690,284,"Evidence chips from both suspects’ files; each opens the raw row."],[640,308,"“AI observation · pending officer verification” plus Add to basket."],[1250,707,"Query-plan strip: which tool ran and with what arguments, for transparency."],[1250,875,"Out-of-range question refused: “the uploaded data does not support this”, with the covered date range."]],
+   i: "A query-plan strip under each answer shows which tool ran, for transparency. Final build swaps the planner for LLM tool-calling over the same engine." },
+ { no: "11", t: "Evidence basket & verification", img: "basket", H: 900, off: 0, route: "console#basket", st: "Built · demo roles", req: ["F9 Accountability","F8 Support"],
+   p: "Findings collected from any screen. They stay AI observations until a Reviewing Officer verifies them. Only verified findings reach the report.",
+   n: [[330,168,"Current role. Only a Reviewing Officer can verify or reject."],[673,170,"Generate report: counts verified findings only."],[800,260,"Verified finding with who verified it and when."],[350,283,"Evidence chips attached to every finding."],[800,740,"AI observation awaiting review: Verify, Reject or Remove."]],
+   i: "Switching role to Investigating Officer disables Verify and Reject." },
+ { no: "12", t: "Draft investigation report", img: "report", H: 1900, off: 860, route: "console#basket → Generate", st: "Built · print / CSV", req: ["F8 Reports","F9 Accountability"],
+   p: "A draft for officer review, built from verified findings only. Prints to PDF; exports a CSV that opens in Excel. Server-side PDF/XLSX is planned for the final.",
+   n: [[400,922,"Print / Save as PDF and Excel (CSV) export."],[640,970,"Header: case, generated time, officer; marked DRAFT for officer review."],[800,1090,"Verified findings with verifier, time and the exact source file and row."],[640,1278,"Count of excluded (unverified or rejected) items: nothing slips in unseen."],[800,1380,"SHA-256 of each source file for chain-of-evidence integrity."]],
+   i: "The synthetic-data and advisory notice is part of the report body." },
+ { no: "13", t: "Audit log", img: "audit", H: 900, off: 0, route: "console#audit", st: "Built · client-side demo", req: ["F9 Accountability"],
+   p: "Every query, view, evidence open, verification and export is recorded with user, role and time. Visible to Reviewing Officers and Administrators only.",
+   n: [[1195,33,"Active role is always shown in the header."],[500,300,"User and role on every entry."],[710,330,"Action type: login, AI query, evidence open, basket add, verified, report."],[960,330,"Detail: the exact question asked or item acted on, including refused questions."],[105,643,"Investigating Officers see a “restricted” notice instead of the log."]],
+   i: "Final build: append-only server table with a tamper-evident hash chain." }
+];
+
+const frame = s => `<div class="frame"><img src="shots/${s.img}.png" alt="">${s.n.map(([x, y], i) => `<div class="co" style="left:${x / 1440 * 100}%;top:${(y - s.off) / 900 * 100}%">${i + 1}</div>`).join("")}</div>`;
+const imgPos = s => `object-position:50% ${s.H > 900 ? (s.off / (s.H - 900) * 100) : 0}%`;
+const screenPage = s => page(s.t, s.no, "SCREEN " + s.no + " · " + s.route, `<div class="scr"><div>${frame(s).replace('<img ', `<img style="${imgPos(s)}" `)}
+  <div class="cap"><span><b>Route:</b> ${s.route}</span><span><b>Status:</b> ${s.st}</span><span><b>Source:</b> live screenshot of the working prototype</span></div></div>
+  <div class="side"><h3>Purpose</h3><div class="purpose">${s.p}</div><h3>Annotations</h3><ul class="notes">${s.n.map((n, i) => `<li><i>${i + 1}</i><span>${n[2]}</span></li>`).join("")}</ul>
+  <div class="chips">${s.req.map(r => `<span class="rq">${r}</span>`).join("")}<span class="st">${s.st}</span></div><div class="box"><b>Interaction:</b> ${s.i}</div></div></div>`);
+
+/* ---------- pages ---------- */
+let out = "";
+
+// 1 cover
+pageNo++;
+out += `<section class="page" style="background:linear-gradient(120deg,#071630,#0b2447 55%,#13346b)"><div class="tri"></div>
+ <div style="position:absolute;inset:5px 0 0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:24px 24px"></div>
+ <div style="position:absolute;left:70px;top:90px;color:#fff;width:760px">
+  <div style="display:flex;align-items:center;gap:16px"><img src="../assets/logo.png" style="width:70px;height:70px;object-fit:contain;background:#fff;border-radius:50%;padding:4px" onerror="this.style.display='none'"><div><div style="font:700 15px Inter;letter-spacing:2px;color:#ffd9a8">CYBER SECURITY HACKATHON 2026 · PS03</div><div style="color:#b9c8e6;font-size:13px">Telecom Data Analytics / Investigation Support</div></div></div>
+  <div style="font:700 62px 'Source Serif 4',serif;margin-top:40px;line-height:1.05">SANCHAR-NETRA</div>
+  <div style="font:600 22px Inter;color:#ffd9a8;margin-top:6px">संचार-नेत्र · CDR / IPDR Intelligence Platform</div>
+  <div style="margin-top:26px;font-size:21px;line-height:1.45;color:#dbe6fb;max-width:660px">Wireframe &amp; screen specification for an evidence-linked AI investigation assistant: <b style="color:#fff">AI proposes. Code computes. Officers verify.</b></div>
+  <div style="margin-top:34px;display:flex;gap:12px;flex-wrap:wrap"><span style="border:1px solid #ffffff55;border-radius:99px;padding:6px 14px;font-size:13px">13 working screens</span><span style="border:1px solid #ffffff55;border-radius:99px;padding:6px 14px;font-size:13px">Real prototype screenshots</span><span style="border:1px solid #ffffff55;border-radius:99px;padding:6px 14px;font-size:13px">Mapped to F1–F9</span></div>
+ </div>
+ <div style="position:absolute;right:60px;top:110px;width:330px;background:#ffffff14;border:1px solid #ffffff30;border-radius:16px;padding:22px;color:#fff;font-size:13px;line-height:1.7">
+  <div style="font:700 12px Inter;letter-spacing:1.5px;color:#ffd9a8;margin-bottom:8px">TEAM HACKCREW</div>
+  Mohammed Noufal V · Leader<br>Karthikeyan M<br>Adithya AM<br>Kavindra K
+  <div style="border-top:1px solid #ffffff30;margin:14px 0"></div>Chennai Institute of Technology<br>B.Tech IT · Year 3
+  <div style="border-top:1px solid #ffffff30;margin:14px 0"></div><span style="color:#b9c8e6">Case PS03-DEMO-001 “Operation Mirage”<br>Final: RPA Jaipur, 28–29 Nov 2026</span></div>
+ <div style="position:absolute;left:70px;bottom:34px;color:#b9c8e6;font-size:11.5px;max-width:900px">Synthetic data only · hackathon prototype, not an official Rajasthan Police website · screens are captured from the working prototype in this repository.</div></section>`;
+
+// 2 contents / how to read
+out += page("How to read this document", "", "Contents & conventions", `
+ <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:24px">
+  <div class="card"><h4>Screen inventory</h4><table class="t"><tr><th>#</th><th>Screen</th><th>Serves</th><th>Page</th></tr>
+   ${S.map((s, i) => `<tr><td><b>${s.no}</b></td><td>${s.t}</td><td>${s.req.map(r => r.split(" ")[0]).join(", ")}</td><td>${i + 5}</td></tr>`).join("")}</table></div>
+  <div>
+   <div class="card" style="margin-bottom:14px"><h4>Reading a screen page</h4><div style="display:flex;gap:10px;align-items:center;font-size:12px;line-height:1.5"><div class="co" style="position:static;transform:none;flex:0 0 24px">1</div><span>Numbered callouts on the screenshot match the numbered annotations on the right. Tags show the requirement served (F1–F9) and build status.</span></div></div>
+   <div class="card" style="margin-bottom:14px"><h4>Requirement codes (from the problem statement)</h4><div style="font-size:11.8px;line-height:1.55"><b>F1</b> Import · <b>F2</b> Patterns · <b>F3</b> Cross-suspect · <b>F4</b> Location &amp; device · <b>F5</b> IPDR · <b>F6</b> AI assistant · <b>F7</b> Evidence-linked answers · <b>F8</b> Investigation support · <b>F9</b> Security &amp; accountability</div></div>
+   <div class="card"><h4>What is real in these wireframes</h4><div style="font-size:11.8px;line-height:1.55">Every screenshot is a capture of the <b>working prototype</b> running on a synthetic case. Numbers shown are computed from the data, not mocked. Final-build screens that do not exist yet are drawn as low-fidelity wireframes and labelled <b>Planned</b>.</div></div>
+  </div></div>`);
+
+// 3 information architecture
+out += page("Information architecture", "", "Navigation map", `
+ <div style="display:grid;grid-template-columns:200px 1fr;gap:20px;height:100%">
+  <div class="card" style="background:var(--navy);color:#fff;text-align:center;display:flex;flex-direction:column;justify-content:center"><div style="font:700 17px 'Source Serif 4',serif">Landing &amp; sign-in</div><div style="font-size:11.5px;color:#b9c8e6;margin:8px 0">Role · Officer ID · Case · OTP</div><div class="arrow" style="transform:rotate(90deg)">➜</div><div style="font:700 15px Inter;margin-top:6px">Case workspace</div><div style="font-size:11px;color:#b9c8e6">Persistent left navigation · role badge · synthetic-data badge</div></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-content:start">
+   ${[["DATA",["Import & validation"],"F1"],["ANALYSIS",["Communication patterns","Contact network","Common numbers","Tower map & timeline","IMEI / SIM changes","IPDR lookup"],"F2 F3 F4 F5"],["ASSIST",["AI assistant"],"F6 F7 F8"],["CASE",["Evidence basket","Draft report","Audit log"],"F8 F9"]].map(([g, items, r]) => `<div class="card"><div style="font:700 11px Inter;letter-spacing:1.3px;color:var(--blue)">${g}</div><div style="font-size:10.5px;color:var(--mut);margin-bottom:8px">serves ${r}</div>${items.map(x => `<div class="lo" style="margin-bottom:6px;text-align:center;font-weight:600">${x}</div>`).join("")}</div>`).join("")}
+   <div class="card" style="grid-column:1/-1;display:flex;gap:14px;align-items:center"><div style="font-size:12px;line-height:1.5"><b style="color:var(--navy)">Global elements on every screen:</b> evidence chips (open the <b>evidence drawer</b>) · “＋ Basket” buttons · role selector · “Synthetic data” badge · log out. <b style="color:var(--navy)">Cross-links:</b> graph and common numbers → basket; map co-location → “Show on map”; assistant follow-up chips → new queries; any chip → drawer.</div></div>
+  </div></div>`);
+
+// 4 journey
+out += page("Investigator journey", "", "From raw files to a reviewed report", `
+ <div style="display:flex;gap:6px;align-items:stretch;margin-top:6px">
+  ${[["1","Sign in","Role, officer ID, case, OTP","Landing"],["2","Import","Files detected, mapped, normalised; issues reported","02"],["3","Explore","Patterns, graph, common numbers","03 04 05"],["4","Locate","Tower map, co-location, devices, IPDR","06 07 08"],["5","Ask","English / Hindi questions with evidence chips","10"],["6","Verify","Reviewer verifies findings in the basket","11"],["7","Report","Draft PDF / Excel from verified findings","12"]].map(([n, t, d, sc], i, a) => `<div class="card" style="flex:1;text-align:center;padding:12px 9px"><div class="co" style="position:static;transform:none;margin:0 auto 8px;width:30px;height:30px;font-size:14px">${n}</div><div style="font:700 14px Inter;color:var(--navy)">${t}</div><div style="font-size:11px;color:var(--mut);margin:6px 0;line-height:1.35">${d}</div><span class="rq" style="font-size:10px;border-radius:99px;padding:2px 8px;font-weight:700">screen ${sc}</span></div>${i < a.length - 1 ? '<div class="arrow">›</div>' : ""}`).join("")}
+ </div>
+ <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:20px">
+  <div class="card"><h4>Moments of truth</h4><div style="font-size:12px;line-height:1.55">• The validation report shows the mess <b>before</b> analysis.<br>• Every claim opens its source row in one click.<br>• The assistant refuses when data is missing.<br>• Nothing reaches the report without a reviewer.</div></div>
+  <div class="card"><h4>Two roles, one hand-off</h4><div style="font-size:12px;line-height:1.55"><b>Investigating Officer</b> explores, asks, adds to basket.<br><b>Reviewing Officer</b> verifies or rejects and generates the report. The hand-off is the basket, and it is logged.</div></div>
+  <div class="card"><h4>Demo case story</h4><div style="font-size:12px;line-height:1.55">Two suspects, two operators. A hidden shared contact, a night-time burst, a handset swap, a co-location at Sanganer, and one fraudulent login traced through a shared public IP.</div></div>
+ </div>`);
+
+// screens
+S.forEach(s => out += screenPage(s));
+
+// RBAC
+out += page("Roles & permissions", "", "Security and accountability (F9)", `
+ <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:22px">
+  <div class="card"><h4>Permission matrix</h4><table class="t"><tr><th>Capability</th><th>Investigating Officer</th><th>Reviewing Officer</th><th>Administrator</th></tr>
+   ${[["View analyses, graph, map","●","●","●"],["Ask the AI assistant","●","●","○"],["Open evidence drawer","●","●","●"],["Add findings to basket","●","●","○"],["Verify / reject findings","○","●","○"],["Generate report","○","●","○"],["View audit log","○","●","●"],["Import / upload files","●","○","●"],["Manage users & cases (final)","○","○","●"]].map(r => `<tr><td>${r[0]}</td>${r.slice(1).map(c => `<td style="text-align:center">${c === "●" ? '<span class="dot"></span>' : '<span class="dot o"></span>'}</td>`).join("")}</tr>`).join("")}</table>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px"><span class="dot"></span> allowed &nbsp; <span class="dot o"></span> not allowed. Prototype enforces verify, report and audit-log rules in the interface; the final build enforces all rules on the server.</div></div>
+  <div><div class="card" style="margin-bottom:14px"><h4>Accountability controls</h4><div style="font-size:12px;line-height:1.6">• Human verification before any finding becomes a conclusion<br>• Query and activity log: who, what, when, role<br>• SHA-256 of every source file in import and report<br>• Raw record always one click from any claim<br>• AI output labelled as observation everywhere</div></div>
+  <div class="card"><h4>Final-build hardening <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned</span></h4><div style="font-size:12px;line-height:1.6">JWT + OTP, per-case access lists, encrypted storage, append-only hash-chained audit, on-premise deployment, model receives aggregated results only.</div></div></div></div>`);
+
+// states
+out += page("States & edge cases", "", "Designing for missing, partial and wrong data", `
+ <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+  <div class="card"><h4>Unsupported question</h4><div class="lo" style="background:#fffaf0;border-color:#ff9933"><b>The uploaded data does not support this.</b><div class="bar" style="width:90%"></div><div class="bar" style="width:70%"></div><div style="margin-top:6px">Chips: <i>Show tower timeline for 06 Mar</i></div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Date outside range, call content, subscriber identity. States the reason and suggests what is supported.</div></div>
+  <div class="card"><h4>Partial answer</h4><div class="lo"><b>3 subscribers share this IP.</b><div class="bar" style="width:80%"></div><div class="blk">Add the source port</div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">IP without a port is not conclusive under CGNAT; the assistant says so and asks for the missing field.</div></div>
+  <div class="card"><h4>Unrecognised file</h4><div class="lo" style="border-color:#c62828"><b style="color:#8a1c1c">UNRECOGNISED</b><div class="bar"></div><div class="blk">Map columns manually</div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Unknown headers are never guessed. The importer flags the file and offers manual mapping.</div></div>
+  <div class="card"><h4>Restricted view</h4><div class="lo"><b>Restricted</b><div class="bar" style="width:80%"></div><div style="margin-top:6px;font-size:10.5px">Audit log is visible to reviewers and administrators.</div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Role-gated screens explain why they are closed instead of failing silently.</div></div>
+  <div class="card"><h4>Data-quality warnings</h4><div class="lo"><span class="rq" style="padding:1px 7px;border-radius:99px;font-size:10px">8 duplicates removed</span><br><span class="rq" style="padding:1px 7px;border-radius:99px;font-size:10px;margin-top:4px;display:inline-block">49 numbers normalised</span><div class="bar"></div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Everything the importer changed is counted and shown.</div></div>
+  <div class="card"><h4>Empty basket</h4><div class="lo"><div class="blk">Basket is empty</div>Use “＋ Basket” on any finding.</div><div style="font-size:11px;color:var(--mut);margin-top:8px">Teaches the next step at the moment it is needed.</div></div>
+  <div class="card"><h4>No co-location found</h4><div class="lo">None found within ±15 minutes (min. 2 records each).</div><div style="font-size:11px;color:var(--mut);margin-top:8px">A negative result is reported plainly with the rule that was applied.</div></div>
+  <div class="card"><h4>Offline libraries</h4><div class="lo">Map needs internet (tiles).</div><div style="font-size:11px;color:var(--mut);margin-top:8px">If map or graph libraries cannot load, the screen explains why; analysis tables still work.</div></div>
+ </div>`);
+
+// planned screens
+out += page("Planned screens for the 24-hour final", "", "Low-fidelity wireframes · not yet built", `
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+  <div class="card"><h4>A · Column-mapping editor <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned · F1</span></h4>
+   <div class="lo"><div style="display:flex;gap:8px"><div style="flex:1"><b>Source columns</b><div class="blk">CALLING_NO</div><div class="blk">CALLED_NO</div><div class="blk">START_TIME</div></div><div class="arrow" style="font-size:16px">→</div><div style="flex:1"><b>Canonical</b><div class="blk" style="background:#e7efff">owner ▾</div><div class="blk" style="background:#e7efff">other ▾</div><div class="blk" style="background:#e7efff">start ▾</div></div></div><div class="blk" style="background:#e6f5e9">Preview 10 rows · Save as operator profile</div></div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px">Lets an officer handle a new operator or R4C’s official format without code.</div></div>
+  <div class="card"><h4>B · Explain this chart <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned · F8</span></h4>
+   <div class="lo"><div class="blk" style="height:70px">chart or graph</div><div style="border-left:4px solid var(--saf);padding:6px 8px;background:#fffaf0;margin-top:6px"><b>What this shows</b><div class="bar" style="width:90%"></div><div class="bar" style="width:75%"></div><span style="font-size:10px">Evidence: file · row, file · row</span></div><div class="blk" style="margin-top:6px">Suggested filter ▸ Night calls only</div></div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px">Grounded, cited reading of any chart, plus suggested filters.</div></div>
+  <div class="card"><h4>C · Case dashboard <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned · F8</span></h4>
+   <div class="lo"><div style="display:flex;gap:6px"><div class="blk" style="flex:1">Files</div><div class="blk" style="flex:1">Findings</div><div class="blk" style="flex:1">Verified</div></div><div class="blk" style="height:46px">Auto case summary (cited)</div><div style="display:flex;gap:6px"><div class="blk" style="flex:1">Open questions</div><div class="blk" style="flex:1">Recent activity</div></div></div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px">One-screen case-wise summary and next suggested steps.</div></div>
+  <div class="card"><h4>D · Time-window filter bar <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned · F2/F6</span></h4><div class="lo"><div style="display:flex;gap:6px"><div class="blk" style="flex:2">From ▾ 01 Mar 22:00</div><div class="blk" style="flex:2">To ▾ 02 Mar 05:00</div><div class="blk" style="flex:1">Apply</div></div><div class="bar"></div><div class="bar" style="width:70%"></div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Shared by every screen; the assistant can also set it.</div></div>
+  <div class="card"><h4>E · Two-person verify <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned · F9</span></h4><div class="lo"><div class="blk">Finding #14</div><div style="display:flex;gap:6px"><div class="blk" style="flex:1;background:#e6f5e9">Reviewer 1 ✔</div><div class="blk" style="flex:1">Reviewer 2 …</div></div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Optional dual sign-off for sensitive cases.</div></div>
+  <div class="card"><h4>F · Mobile review view <span class="pl" style="font-size:10px;padding:1px 8px;border-radius:99px">Planned</span></h4><div class="lo" style="width:130px;margin:0 auto"><div class="blk">Finding</div><div class="bar"></div><div class="blk" style="background:#e6f5e9">Verify</div><div class="blk">Reject</div></div><div style="font-size:11px;color:var(--mut);margin-top:8px">Reviewers can verify evidence from a phone.</div></div>
+ </div>`);
+
+// matrix
+out += page("Requirement coverage", "", "Problem statement → screens", `
+ <div class="card"><table class="t"><tr><th style="width:290px">Requirement (problem statement)</th>${["Landing","02 Import","03 Patterns","04 Graph","05 Common","06 Map","07 Devices","08 IPDR","09 Drawer","10 Assistant","11 Basket","12 Report","13 Audit"].map(h => `<th style="text-align:center;font-size:10px">${h}</th>`).join("")}</tr>
+  ${[["F1 · Import, mapping, validation, normalisation",[0,2,0,0,0,0,0,0,0,0,0,0,0]],["F2 · Patterns, night activity, unusual contacts",[0,0,2,1,1,0,0,0,0,1,0,0,0]],["F3 · Cross-suspect correlation",[0,0,0,2,2,1,0,0,0,1,0,0,0]],["F4 · Tower timeline, IMEI/SIM changes",[0,0,0,0,0,2,2,0,0,1,0,0,0]],["F5 · IPDR correlation, service indicators",[0,0,0,0,0,0,0,2,0,1,0,0,0]],["F6 · Natural-language assistant (+ Hindi)",[0,0,0,0,0,0,0,0,0,2,0,0,0]],["F7 · Evidence-linked answers, says when unsupported",[0,1,1,1,1,1,1,1,2,2,1,1,0]],["F8 · Summaries, follow-ups, PDF/Excel report",[0,0,0,0,0,0,0,0,0,1,1,2,0]],["F9 · Roles, logs, human verification",[1,0,0,0,0,0,0,0,1,1,2,1,2]]].map(([n, r]) => `<tr><td><b>${n.split(" · ")[0]}</b> · ${n.split(" · ")[1]}</td>${r.map(v => `<td style="text-align:center">${v === 2 ? '<span class="dot"></span>' : v === 1 ? '<span class="dot h"></span>' : ""}</td>`).join("")}</tr>`).join("")}</table>
+  <div style="font-size:11px;color:var(--mut);margin-top:8px"><span class="dot"></span> primary screen &nbsp; <span class="dot h"></span> supporting. Scope: all <b>Must-have</b> items are built; <b>Good-to-have</b> items (IMEI/SIM, night activity, report, Hindi) are included; <b>Out-of-scope</b> items (live interception, fetching real operator data, unverified AI conclusions) are excluded by design.</div></div>
+ <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px">
+  <div class="card"><h4>Must-have</h4><div style="font-size:12px;line-height:1.55">✔ 2 CDR formats + 1 IPDR file<br>✔ Contact graph, common numbers, tower timeline<br>✔ Assistant with source references</div></div>
+  <div class="card"><h4>Good-to-have</h4><div style="font-size:12px;line-height:1.55">✔ IMEI/SIM detection, night reports<br>✔ Draft report (print/PDF, CSV)<br>✔ Hindi queries (keyword planner; LLM in final)</div></div>
+  <div class="card"><h4>Excluded by design</h4><div style="font-size:12px;line-height:1.55">✖ Live interception<br>✖ Real operator data<br>✖ AI output as a final conclusion</div></div></div>`);
+
+// design system
+out += page("Design system", "", "Visual language used across all screens", `
+ <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+  <div class="card"><h4>Colour</h4><div style="display:flex;flex-wrap:wrap;gap:8px">${[["#0b2447","Navy · primary"],["#13346b","Navy 2"],["#ff9933","Saffron · attention, night, callouts"],["#138808","Green · verified"],["#1f5bd8","Blue · Suspect A, links"],["#c62828","Red · shared, risk"],["#f4f6fa","Surface"],["#16202e","Ink"]].map(([c, n]) => `<div style="width:calc(50% - 4px);display:flex;gap:8px;align-items:center;font-size:11px"><div style="width:30px;height:30px;border-radius:7px;background:${c};border:1px solid #0002"></div>${n}<br><span style="color:var(--mut)">${c}</span></div>`).join("")}</div>
+   <div style="font-size:11px;color:var(--mut);margin-top:8px">Tricolour strip and navy header give a government feel; saffron is reserved for attention.</div></div>
+  <div class="card"><h4>Typography</h4><div style="font:700 24px 'Source Serif 4',serif;color:var(--navy)">Source Serif 4</div><div style="font-size:11px;color:var(--mut);margin-bottom:10px">Headings, product name</div><div style="font:600 18px Inter">Inter</div><div style="font-size:11px;color:var(--mut);margin-bottom:10px">Interface and data</div><div style="font:600 12px ui-monospace,Consolas,monospace;background:#eaf0fb;border:1px solid #bdd0f5;border-radius:6px;display:inline-block;padding:2px 8px;color:#0b3a8f">airtel_suspectA_cdr.csv · row 412</div><div style="font-size:11px;color:var(--mut);margin-top:4px">Monospace for evidence and identifiers</div><div style="margin-top:10px;font-size:15px">हर निष्कर्ष, प्रमाण के साथ।</div><div style="font-size:11px;color:var(--mut)">Devanagari supported throughout</div></div>
+  <div class="card"><h4>Core components</h4><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:11px">
+   <span class="chip" style="background:#eaf0fb;color:#0b3a8f;border:1px solid #bdd0f5;border-radius:6px;padding:1px 8px;font:600 11px monospace">file · row 12</span> evidence chip<br>
+   <span class="st" style="padding:2px 9px;border-radius:99px;font-weight:700">Verified</span> <span style="background:#fff1dc;color:#8a4b00;padding:2px 9px;border-radius:99px;font-weight:700">AI observation</span> <span style="background:#fde8e8;color:#8a1c1c;padding:2px 9px;border-radius:99px;font-weight:700">Rejected</span> status tags<br>
+   <span style="background:var(--navy);color:#fff;padding:6px 12px;border-radius:8px;font-weight:700">Primary</span> <span style="background:var(--saf);padding:6px 12px;border-radius:8px;font-weight:700">Action</span> <span style="background:#eef3fc;color:var(--navy);padding:6px 12px;border-radius:8px;font-weight:700">Secondary</span> buttons</div>
+   <div style="border-left:4px solid var(--saf);background:#fffaf0;padding:8px 10px;margin-top:10px;font-size:11.5px"><b>The uploaded data does not support this.</b> Refusal panel</div></div>
+  <div class="card" style="grid-column:1/-1"><h4>Principles</h4><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;font-size:12px;line-height:1.5"><div><b style="color:var(--navy)">Evidence first</b><br>Nothing is shown without a path to its source row.</div><div><b style="color:var(--navy)">Honest by default</b><br>Missing data is reported plainly, never filled in silently.</div><div><b style="color:var(--navy)">Explainable</b><br>Rules and query plans are visible; no black-box scores.</div><div><b style="color:var(--navy)">Accessible &amp; bilingual</b><br>Font size controls, high contrast, English and Hindi.</div></div></div>
+ </div>`);
+
+// closing
+out += page("From wireframe to the 24-hour build", "", "What happens next", `
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+  <div class="card"><h4>What exists today</h4><div style="font-size:12.5px;line-height:1.7">✔ Working prototype of all 13 screens on a synthetic case<br>✔ Analytics engine verified against an answer key (22 checks)<br>✔ Evidence linking, refusals, verification gate, audit log<br>✔ Two CDR formats and one IPDR format imported and normalised</div></div>
+  <div class="card"><h4>What the final adds</h4><div style="font-size:12.5px;line-height:1.7">▸ Official R4C sample data and operator profiles<br>▸ Column-mapping editor and time-window filter<br>▸ LLM tool-calling assistant over the same engine, natural Hindi<br>▸ Server-side roles, encrypted storage, tamper-evident audit<br>▸ PDF and Excel report generation, case dashboard</div></div>
+  <div class="card" style="grid-column:1/-1;background:var(--navy);color:#fff;border:0"><div style="font:700 22px 'Source Serif 4',serif">AI proposes. Code computes. Officers verify.</div><div style="font-size:13px;color:#b9c8e6;margin-top:6px">Every screen in this document exists to make one promise credible: an investigator can check any claim in one click, and nothing becomes a conclusion without a human.</div><div style="font-size:12px;color:#ffd9a8;margin-top:10px">Repository: github.com/Noufalthecoder/RajasthanpoliceHackathon · full technical documentation in project.md</div></div>
+ </div>`);
+
+document.getElementById("root").innerHTML = out;
+</script>
+</body>
+</html>

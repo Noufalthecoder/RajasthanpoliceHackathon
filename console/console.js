@@ -33,7 +33,13 @@
   function renderNav() {
     $("#nav").innerHTML = TABS.map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([k, i, l]) => `<button data-tab="${k}" class="${tab === k ? "on" : ""}">${i} ${l}${k === "basket" && basket.length ? `<span class="cnt">${basket.length}</span>` : ""}</button>`).join("")).join("");
   }
-  function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); }
+  let langBusy = 0;
+  function applyLang() {
+    if (!window.Lang || !Lang.on()) return;
+    const n = ++langBusy; $("#toast").classList.contains("on") || toast("Translating… / अनुवाद हो रहा है…");
+    Lang.translateDom(document.body).catch(() => { if (n === langBusy) toast("Translation unavailable. Is the local server running (python tools/serve.py)?"); });
+  }
+  function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); applyLang(); }
 
   /* ---------- shared UI bits ---------- */
   const suspSel = (id, both) => `<select id="${id}"><option value="A">Suspect A · ${E.pretty(db.A)}</option><option value="B">Suspect B · ${E.pretty(db.B)}</option>${both ? '<option value="both">Both suspects</option>' : ""}</select>`;
@@ -157,6 +163,7 @@
       };
       $("#ms").onchange = $("#md").onchange = () => { $("#mstep").value = 0; draw(); }; $("#mstep").oninput = draw;
       $("#mplay").onclick = () => { if (timer) { clearInterval(timer); timer = null; $("#mplay").textContent = "▶ Play"; return; } const st = $("#mstep"); st.value = 0; $("#mplay").textContent = "⏸ Pause"; timer = setInterval(() => { if (+st.value >= +st.max) { clearInterval(timer); timer = null; $("#mplay").textContent = "▶ Play"; return; } st.value = +st.value + 1; draw(); }, 900); };
+      const dq = new URLSearchParams(location.search).get("day"); if (dq) $("#md").value = dq;
       draw(); setTimeout(() => map.invalidateSize(), 200);
     } });
 
@@ -190,7 +197,14 @@
       const paint = () => { $("#msgs").innerHTML = chat.length ? chat.map(m => m.u ? `<div class="m u">${esc(m.u)}</div>` : `<div class="m a ${m.r.status === "unsupported" ? "un" : ""}">${m.r.findings.map((f, i) => `<div class="f">${f.html}<div>${evs(f.ev)}</div><div class="pend">AI observation · pending officer verification ${f.ev.length || m.r.status !== "unsupported" ? addBtn(f.html.replace(/<[^>]+>/g, ""), f.ev, "assistant") : ""}</div></div>`).join("")}
         <div class="plan">query plan → ${esc(JSON.stringify(m.r.plan))}</div>${m.r.follow.length ? `<div class="sugg">${m.r.follow.map(x => `<button data-ask="${esc(x)}">${esc(x)}</button>`).join("")}</div>` : ""}</div>`).join("") : '<div class="m a">Hello Officer. Ask about contacts, common numbers, towers, device changes, night activity or an IPDR session.</div>';
         $("#sugg").innerHTML = chat.length ? "" : start.map(x => `<button data-ask="${esc(x)}">${esc(x)}</button>`).join(""); $("#msgs").scrollTop = 1e9; };
-      window.__ask = q => { if (!q.trim()) return; chat.push({ u: q }); const r = E.ask(db, q); chat.push({ r }); log("AI_QUERY", `${q} → ${r.intent} [${r.status}]`); paint(); };
+      window.__ask = async q => {
+        if (!q.trim()) return; chat.push({ u: q }); paint();
+        let r = E.ask(db, q);
+        if (r.intent === "unsupported" && /[^\x00-\x7F]/.test(q) && window.Lang && Lang.enabled) {   // non-English question the keyword planner missed: translate to English via Sarvam, then retry
+          try { const qe = (await Lang.api([q], "en-IN", "auto"))[0], r2 = E.ask(db, qe); if (r2.intent !== "unsupported") { r = r2; r.plan.args = Object.assign({ translated_query: qe }, r.plan.args); } } catch (e) { }
+        }
+        chat.push({ r }); log("AI_QUERY", `${q} → ${r.intent} [${r.status}]`); paint(); applyLang();
+      };
       new URLSearchParams(location.search).getAll("ask").forEach(window.__ask);
       $("#send").onclick = () => { window.__ask($("#q").value); $("#q").value = ""; }; $("#q").onkeydown = e => e.key === "Enter" && $("#send").click(); paint();
     } });
@@ -201,7 +215,7 @@
     return { html: `<h2>Evidence basket & report</h2><p class="lead">Findings collected here stay <b>AI observations</b> until a Reviewing Officer verifies them. Only verified findings go into the report.</p>
       <div class="row"><span class="tag t-gry">Signed in as: ${ROLES[role]}</span>${can ? "" : '<span class="mut">Switch role to “Reviewing Officer” (top right) to verify.</span>'}<span class="sp"></span><button class="btn alt" id="bclr">Clear basket</button><button class="btn warn" id="brep">Generate report (${ver.length} verified)</button></div>
       ${basket.length ? basket.map((b, i) => `<div class="card"><div class="row"><span class="tag ${b.status === "Verified" ? "t-grn" : b.status === "Rejected" ? "t-red" : "t-amb"}">${b.status}</span><span class="mut">${esc(b.src)} · added ${b.at}${b.by2 ? ` · ${b.status.toLowerCase()} by ${esc(b.by2)}` : ""}</span></div><div>${esc(b.html)}</div><div>${evs(b.ev)}</div>
-        <div class="row" style="margin:10px 0 0"><button class="btn sm ok" data-ver="${i}" ${can ? "" : "disabled"} title="${can ? "" : "Only a Reviewing Officer can verify"}">✔ Verify</button><button class="btn sm alt" data-rej="${i}" ${can ? "" : "disabled"}>✖ Reject</button><button class="btn sm alt" data-del="${i}">Remove</button></div></div>`).join("") : '<div class="card mut">Basket is empty. Use “＋ Basket” on any finding.</div>'}
+        <div class="row" style="margin:10px 0 0">${b.status === "AI observation" ? `<button class="btn sm ok" data-ver="${i}" ${can ? "" : "disabled"} title="${can ? "" : "Only a Reviewing Officer can verify"}">✔ Verify</button><button class="btn sm alt" data-rej="${i}" ${can ? "" : "disabled"}>✖ Reject</button>` : ""}<button class="btn sm alt" data-del="${i}">Remove</button></div></div>`).join("") : '<div class="card mut">Basket is empty. Use “＋ Basket” on any finding.</div>'}
       <div id="rep"></div>`,
       after() {
         $("#bclr").onclick = () => { basket = []; store.set("sn_basket", basket); log("BASKET", "cleared"); go("basket"); };
@@ -243,5 +257,19 @@
   $("#role").onchange = e => { role = e.target.value; $("#who").textContent = { inv: "RJ-IO-0421", rev: "RJ-RO-0107", adm: "RJ-AD-0001" }[role]; log("ROLE_SWITCH", ROLES[role]); toast("Role: " + ROLES[role]); go(tab); };
 
   log("LOGIN", "console opened (demo, mocked authentication)");
+  if (window.Lang) Lang.mount($("#lang"), () => { log("LANGUAGE", Lang.lang); go(tab); });
+  const QS = new URLSearchParams(location.search);
+  if (QS.get("demo")) {   // demo state for screenshots / rehearsal: reviewer role + seeded basket
+    role = "rev"; $("#role").value = "rev"; $("#who").textContent = "RJ-RO-0107";
+    const mk = (r, src, st) => r.findings[0] && basket.push({ html: r.findings[0].html.replace(/<[^>]+>/g, ""), ev: r.findings[0].ev, src, status: st, at: "2026-03-21 11:02", by: "RJ-IO-0421", ...(st !== "AI observation" ? { by2: "RJ-RO-0107", vat: "2026-03-21 11:40" } : {}) });
+    basket = [];
+    mk(E.ask(db, "common numbers between both suspects"), "common-numbers", "Verified");
+    mk(E.ask(db, "imei changes for suspect a"), "device-change", "Verified");
+    mk(E.ask(db, "same tower"), "co-location", "Verified");
+    mk(E.ask(db, "203.0.113.45:41234 at 2026-03-07 22:47:10"), "ipdr", "AI observation");
+    ["LOGIN console opened", "AI_QUERY Which numbers are common to both suspects? → common_numbers [supported]", "AI_QUERY Where was Suspect B on 20 March 2026? → unsupported [unsupported]", "EVIDENCE_OPEN airtel_suspectA_cdr.csv:10", "BASKET_ADD common-numbers", "IPDR_LOOKUP 203.0.113.45:41234 @ 2026-03-07 22:47:10", "VERIFIED common-numbers", "VERIFIED device-change", "VERIFIED co-location", "REPORT generated with 3 verified findings"].reverse().forEach(x => { const [a, ...d] = x.split(" "); log(a, d.join(" ")); });
+  }
   const h0 = location.hash.slice(1); renderNav(); go(VIEWS[h0] ? h0 : "import"); hashAll().then(() => { if (tab === "import") go("import"); });
+  if (QS.get("report")) setTimeout(() => { const b = $("#brep"); b && b.click(); }, 300);
+  if (QS.get("ev")) setTimeout(() => openEv(QS.get("ev")), 300);
 })();

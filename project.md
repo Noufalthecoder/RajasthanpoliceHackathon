@@ -866,8 +866,8 @@ Unit tests for each SQL analysis vs ground truth · property tests for number no
 ## 17. How to run everything
 
 ```bash
-# serve the site (recommended)
-python -m http.server 8000          # then open http://localhost:8000
+# serve the site + language proxy (recommended)
+python tools/serve.py               # then open http://localhost:8000  (put SARVAM_API_KEY in .env first)
 # or double-click index.html → console works from file://
 
 # regenerate the synthetic case (deterministic)
@@ -882,11 +882,18 @@ Example auto-run: `console/console.html?ask=Any%20IMEI%20changes%3F#assistant`.
 
 ---
 
+### 17.1 Language support (Sarvam AI) ✅
+- UI language picker on the landing page and console: English, हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, मराठी, ଓଡ଼ିଆ, ਪੰਜਾਬੀ, தமிழ், తెలుగు.
+- `console/lang.js` collects visible text nodes (skipping evidence chips, code, numbers and file names) and sends them to `POST /api/translate` on the local server `tools/serve.py`, which calls Sarvam's `mayura:v1` translation API. **The API key lives only in the server's environment or a git-ignored `.env`; it is never sent to the browser or committed.**
+- Per-string fallback: if Sarvam rejects one string, that string stays English and the rest still translate. Results are cached in `.cache/translate.json` for offline demos.
+- Assistant: a question typed in any supported language is first tried with the built-in keyword planner; if that does not recognise it, it is translated to English via Sarvam and retried (the translated text is shown in the query plan). Answers are translated for display; numbers and evidence ids are unchanged.
+- Limits: machine translation of technical terms is literal; the planner remains English/Hindi-keyword based until the LLM planner is built.
+
 ## 18. Limitations and honesty statement
 - All data is **synthetic**; operator layouts are our approximation. The official R4C sample has not yet been tested.
 - The prototype assistant is a **rule-based planner**, not an LLM. Hindi coverage is keyword-based.
 - Roles, OTP login and the audit log are **client-side demos**, not real security controls.
-- The map and graph rely on CDN libraries and map tiles, so they need internet.
+- The map and graph rely on CDN libraries and map tiles, so they need internet. Language switching needs the local server and internet access to Sarvam (cached strings work offline).
 - Report export is print-to-PDF and CSV; server-side PDF/XLSX is planned.
 - Inferences (e.g. likely residence area, co-location) are **leads for officer verification, not conclusions**.
 - Phone numbers are fictional patterns and could coincide with real numbers by chance; do not contact them.
