@@ -186,7 +186,7 @@
     after() {
       if (!window.L) { $("#map").innerHTML = '<p class="mut" style="padding:20px">Map library needs internet (Leaflet CDN).</p>'; return; }
       const days = [...new Set(db.recs.map(r => E.day(r.ts)))].sort(), co = E.coloc(db);
-      $("#md").innerHTML = `<option value="">All days (usage)</option>` + days.map(d => `<option ${co.some(g => g.day === d) ? 'data-co="1"' : ""} value="${d}">${d}${co.some(g => g.day === d) ? "  ⚠ co-location" : ""}</option>`).join("");
+      $("#md").innerHTML = `<option value="">All days (usage)</option>` + days.map(d => `<option ${co.some(g => g.day === d) ? 'data-co="1"' : ""} value="${d}">${d}${co.some(g => g.day === d) ? "  ⚠ shared cell-site activity" : ""}</option>`).join("");
       $("#ms").value = "both";
       map = map ? (map.remove(), null) : null; map = L.map("map").setView([26.89, 75.80], 11);
       const carto = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Tiles © Esri" });
@@ -354,6 +354,7 @@
     ["LOGIN console opened", "AI_QUERY Which numbers are common to both suspects? → common_numbers [supported]", "AI_QUERY Where was Suspect B on 20 March 2026? → unsupported [unsupported]", "EVIDENCE_OPEN airtel_suspectA_cdr.csv:10", "BASKET_ADD common-numbers", "IPDR_LOOKUP 203.0.113.45:41234 @ 2026-03-07 22:47:10", "VERIFIED common-numbers", "VERIFIED device-change", "VERIFIED co-location", "REPORT generated with 3 verified findings"].reverse().forEach(x => { const [a, ...d] = x.split(" "); log(a, d.join(" ")); });
   }
   const h0 = location.hash.slice(1); renderNav(); go(VIEWS[h0] ? h0 : "overview"); hashAll().then(() => { if (tab === "import") go("import"); });
+  if (QS.get("shot")) setTimeout(() => window.scrollTo(0, 0), 3000);   // keeps documentation screenshots aligned
   if (QS.get("report")) setTimeout(() => { const b = $("#brep"); b && b.click(); }, 300);
   if (QS.get("ev")) setTimeout(() => openEv(QS.get("ev")), 300);
 
