@@ -9,7 +9,7 @@
 <style>
 :root{--navy:#0b2447;--navy2:#13346b;--saffron:#ff9933;--green:#138808;--red:#c62828;--ink:#16202e;--muted:#5b6778;--line:#dfe5ee;--bg:#f4f6fa;--card:#fff;--accent:#1f5bd8}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+body{font-family:Inter,system-ui,"Nirmala UI","Noto Sans",sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55}
 .tri{height:4px;background:linear-gradient(90deg,var(--saffron) 33%,#fff 33% 66%,var(--green) 66%)}
 .top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:8px 18px;flex-wrap:wrap}
 .top img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}
@@ -75,6 +75,31 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #c9
 @media print{.top,nav.side,.noprint,#drawer,.tri{display:none!important}.layout{display:block}main{padding:0}body{background:#fff}.card{break-inside:avoid}}
 @media(max-width:900px){.layout{grid-template-columns:1fr}nav.side{position:static;height:auto;display:flex;flex-wrap:wrap}nav.side .grp{display:none}nav.side button{width:auto}.g2,.g3,.g4{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}main{padding:14px}}
+
+/* ---- usability polish ---- */
+:focus-visible{outline:3px solid #1f5bd8;outline-offset:2px;border-radius:6px}
+main{padding:24px 30px 90px}
+h2{font-size:26px;margin-bottom:4px}.lead{font-size:15.5px}
+.card{border-radius:14px;box-shadow:0 1px 3px rgba(11,36,71,.06)}
+td{padding:9px 12px}th{padding:10px 12px}tbody tr:hover td,table tr:hover td{background:#f7faff}
+.btn{padding:10px 18px;border-radius:9px;font-size:14.5px}.btn.sm{padding:6px 12px;font-size:13px}
+nav.side{width:230px}.layout{grid-template-columns:230px 1fr}nav.side button{padding:11px 12px;font-size:14.5px;border-radius:9px}
+.tip{background:#eef4ff;border:1px solid #cfdcf7;border-left:4px solid var(--accent);border-radius:10px;padding:9px 13px;margin:0 0 16px;font-size:14px;color:#1c3568}
+.nextbar{display:flex;justify-content:space-between;gap:12px;margin:26px 0 0;padding-top:16px;border-top:1px solid var(--line)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:4px 0}
+.step{display:flex;flex-direction:column;gap:2px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit;text-align:left;transition:.15s;color:var(--ink)}
+.step:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(31,91,216,.14);transform:translateY(-1px)}
+.step b{color:var(--navy);font-size:15px}.step small{color:var(--muted);font-size:12.5px}
+.sn{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font:700 13px Inter;margin-bottom:4px}.sn.done{background:var(--green)}
+.lead-row{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.lead-row:first-of-type{border-top:0}
+.lead-row .li{font-size:22px;width:36px;height:36px;border-radius:10px;background:#eef3fc;display:grid;place-items:center;flex:0 0 36px}
+.qa{display:grid;gap:8px}.qa .btn{justify-content:center;text-align:center}
+#askfab{position:fixed;right:22px;bottom:22px;z-index:150;border:0;border-radius:99px;background:var(--saffron);color:#1b1200;font:700 15px Inter;padding:13px 22px;cursor:pointer;box-shadow:0 8px 24px rgba(255,153,51,.5);transition:.15s}
+#askfab:hover{transform:translateY(-2px);filter:brightness(1.05)}
+.fs button{border:1px solid #3b5f9c;background:#13346b;color:#fff;border-radius:6px;padding:3px 8px;font:600 12px Inter;cursor:pointer}.fs button:hover{background:#1f5bd8}
+@media(max-width:900px){.steps{grid-template-columns:1fr 1fr}nav.side{width:auto}.layout{grid-template-columns:1fr}}
+@media(max-width:560px){.steps{grid-template-columns:1fr}main{padding:16px 14px 90px}}
+@media print{#askfab,.nextbar,.tip{display:none!important}}
 </style>
 </head>
 <body>
@@ -84,6 +109,7 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #c9
   <div><h1>SANCHAR-NETRA</h1><small>Case PS03-DEMO-001 · Operation Mirage</small></div>
   <div class="sp"></div>
   <span class="badge">SYNTHETIC DATA · HACKATHON PROTOTYPE</span>
+  <span class="fs no-tr" title="Text size"><button data-fs="-1" aria-label="Smaller text">A-</button> <button data-fs="0" aria-label="Normal text">A</button> <button data-fs="1" aria-label="Larger text">A+</button></span>
   <label style="font-size:12px;color:#b9c8e6" class="no-tr">🌐&nbsp;<select id="lang" aria-label="Language"></select></label>
   <label style="font-size:12px;color:#b9c8e6">Role&nbsp;
     <select id="role"><option value="inv">Investigating Officer</option><option value="rev">Reviewing Officer</option><option value="adm">Administrator</option></select></label>
@@ -94,6 +120,7 @@ select,input[type=text],input[type=number]{padding:8px 10px;border:1px solid #c9
   <nav class="side" id="nav"></nav>
   <main id="main"></main>
 </div>
+<button id="askfab" aria-label="Ask the AI assistant">💬 Ask AI</button>
 <div id="drawer"></div><div id="toast"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>

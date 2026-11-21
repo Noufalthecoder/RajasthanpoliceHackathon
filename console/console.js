@@ -27,7 +27,7 @@
   }
 
   /* ---------- navigation ---------- */
-  const TABS = [["Data", [["import", "📥", "Import & validation"]]],
+  const TABS = [["Start", [["overview", "🏠", "Overview"]]], ["Data", [["import", "📥", "Import & validation"]]],
     ["Analysis", [["patterns", "📊", "Communication patterns"], ["graph", "🕸", "Contact network"], ["common", "🤝", "Common numbers"], ["map", "🗼", "Tower map & timeline"], ["devices", "📱", "IMEI / SIM changes"], ["ipdr", "🌐", "IPDR lookup"]]],
     ["Assist", [["assistant", "💬", "AI assistant"]]],
     ["Case", [["basket", "🧺", "Evidence basket"], ["audit", "📜", "Audit log"]]]];
@@ -40,7 +40,31 @@
     const n = ++langBusy;
     Lang.translateDom(document.body).catch(() => { if (n === langBusy) toast("Translation unavailable. Is the local server running (python tools/serve.py)?"); });
   }
-  function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); }
+  const ORDER = ["overview", "import", "patterns", "graph", "common", "map", "devices", "ipdr", "assistant", "basket", "audit"];
+  const NAMES = { overview: "Overview", import: "Import & validation", patterns: "Communication patterns", graph: "Contact network", common: "Common numbers", map: "Tower map & timeline", devices: "IMEI / SIM changes", ipdr: "IPDR lookup", assistant: "AI assistant", basket: "Evidence basket", audit: "Audit log" };
+  const TIPS = {
+    import: "Check the green and amber tags first: they list everything that was cleaned, fixed or skipped. Nothing is changed silently.",
+    patterns: "Pick a suspect, then read the charts left to right. Saffron bars are night-time (00:00–05:00). Orange tags mark numbers worth a closer look.",
+    graph: "Big dots talk the most. Red dots are numbers both suspects contacted. Click any dot or line to see the exact records.",
+    common: "Start with the red box: numbers that appear in both suspects' records. Click “+N more” to see every record behind a count.",
+    map: "Choose a day, then press Play to replay movement. Red rings are shared cell-site activity: a lead to check, not proof that the two met.",
+    devices: "A new IMEI on the same SIM means a different handset; a new IMSI on the same handset means a new SIM. Both are leads, not conclusions.",
+    ipdr: "A public IP is shared by many people. Only IP + port + protocol + time points to one subscriber, so fill all four.",
+    assistant: "Ask in your own words, in English or Hindi. Every answer shows the source rows. If the data cannot answer, the assistant says so.",
+    basket: "Add findings here from any screen. A Reviewing Officer verifies them; only verified findings appear in the report.",
+    audit: "Every question, view, verification and export is recorded here with who did it and when."
+  };
+  function nextBar(t) {
+    const i = ORDER.indexOf(t), prev = ORDER[i - 1], next = ORDER[i + 1];
+    return `<div class="nextbar noprint">${prev ? `<button class="btn alt" data-tab="${prev}">← ${NAMES[prev]}</button>` : "<span></span>"}${next ? `<button class="btn" data-tab="${next}">Next: ${NAMES[next]} →</button>` : "<span></span>"}</div>`;
+  }
+  function go(t) {
+    tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t]();
+    let html = v.html; if (TIPS[t]) html = html.replace(/(<p class="lead">[\s\S]*?<\/p>)/, `$1<div class="tip">💡 <b>Tip:</b> ${TIPS[t]}</div>`);
+    $("#main").innerHTML = html + nextBar(t); window.scrollTo(0, 0);
+    const fab = $("#askfab"); if (fab) fab.style.display = t === "assistant" ? "none" : "";
+    v.after && v.after();
+  }
 
   /* ---------- shared UI bits ---------- */
   const suspSel = (id, both) => `<select id="${id}"><option value="A">Suspect A · ${E.pretty(db.A)}</option><option value="B">Suspect B · ${E.pretty(db.B)}</option>${both ? '<option value="both">Both suspects</option>' : ""}</select>`;
@@ -49,6 +73,28 @@
 
   /* ---------- VIEWS ---------- */
   const VIEWS = {};
+
+  VIEWS.overview = () => {
+    const com = E.common(db), co = E.coloc(db), dev = ["A", "B"].flatMap(w => E.devices(db, w).changes.map(c => ({ w, c })));
+    const nA = E.night(db, "A")[0], nB = E.night(db, "B")[0], mine = basket.filter(b => b.status === "AI observation").length, ver = basket.filter(b => b.status === "Verified").length;
+    const leads = [];
+    com.slice(0, 2).forEach(x => leads.push({ icon: "🤝", tab: "common", title: `${E.pretty(x.num)} is contacted by both suspects`, sub: `Suspect A ${x.a.total} · Suspect B ${x.b.total} interactions`, text: `${E.pretty(x.num)} appears in both datasets: A ${x.a.total} interactions, B ${x.b.total}.`, ids: [...x.a.recs.map(r => r.id), ...x.b.recs.map(r => r.id)], src: "common-numbers" }));
+    dev.forEach(({ w, c }) => leads.push({ icon: "📱", tab: "devices", title: `${label(SUBJ[w]())}: ${c.type}`, sub: `${c.from} → ${c.to}`, text: `${label(SUBJ[w]())}: ${c.type} between ${E.fmt(c.before.ts)} and ${E.fmt(c.after.ts)}: ${c.from} → ${c.to}.`, ids: [c.before.id, c.after.id], src: "device-change" }));
+    co.forEach(g => leads.push({ icon: "🗼", tab: "map", title: `Shared cell-site activity at ${tName(g.tower)} on ${g.day}`, sub: "A lead to corroborate, not proof the two met", text: `Shared cell-site activity at ${tName(g.tower)} on ${g.day} (${g.a.length} records for A, ${g.b.length} for B).`, ids: [...g.a.map(r => r.id), ...g.b.map(r => r.id)], src: "shared-cell-site" }));
+    [[db.A, nA], [db.B, nB]].forEach(([n, x]) => x && leads.push({ icon: "🌙", tab: "patterns", title: `${label(n)}: ${x.night} night-time records with ${E.pretty(x.num)}`, sub: "Between 00:00 and 05:00", text: `${label(n)} has ${x.night} records between 00:00 and 05:00 with ${E.pretty(x.num)}.`, ids: x.recs.filter(r => new Date(r.ts).getUTCHours() < 5).map(r => r.id), src: "night-activity" }));
+    const steps = [["1", "Import", "Files checked and cleaned", "import", true], ["2", "Explore", "Patterns, network, towers", "patterns"], ["3", "Ask", "Questions with evidence", "assistant"], ["4", "Verify & report", "Reviewer signs off", "basket"]];
+    return { html: `<h2>Case overview</h2><p class="lead">Operation Mirage · PS03-DEMO-001 · ${E.day(db.range.from)} to ${E.day(db.range.to)} · synthetic data. Start here, then follow the steps below.</p>
+      <div class="steps">${steps.map(([n, t, d, tb, done]) => `<button class="step" data-tab="${tb}"><span class="sn ${done ? "done" : ""}">${done ? "✔" : n}</span><b>${t}</b><small>${d}</small></button>`).join("")}</div>
+      <div class="grid g4" style="margin:16px 0"><div class="kpi"><b>${db.recs.length + db.ipdr.length}</b><span>records loaded (${db.report.length} files)</span></div><div class="kpi"><b>${com.length}</b><span>numbers contacted by both suspects</span></div><div class="kpi"><b>${dev.length}</b><span>handset or SIM changes</span></div><div class="kpi"><b>${co.length}</b><span>shared cell-site windows</span></div></div>
+      <div class="grid" style="grid-template-columns:2fr 1fr;align-items:start">
+        <div class="card"><h3>🔎 Leads worth a look <span class="mut" style="font-weight:500">· computed from the records, each opens its evidence</span></h3>
+          ${leads.map(l => `<div class="lead-row"><span class="li">${l.icon}</span><div style="flex:1"><b>${esc(l.title)}</b><div class="mut">${esc(l.sub)}</div></div><button class="btn sm" data-tab="${l.tab}">Open</button>${addBtn(l.text, l.ids, l.src)}</div>`).join("") || '<p class="mut">No leads found.</p>'}</div>
+        <div>
+          <div class="card"><h3>⚡ Quick actions</h3><div class="qa"><button class="btn" data-tab="assistant">💬 Ask the AI assistant</button><button class="btn alt" data-tab="ipdr">🌐 Resolve a public IP</button><button class="btn alt" data-tab="map">🗼 Open the tower map</button></div></div>
+          <div class="card"><h3>🧺 ${role === "rev" ? "Waiting for your review" : "Your evidence basket"}</h3><p><b style="font-size:22px">${role === "rev" ? mine : basket.length}</b> ${role === "rev" ? (mine === 1 ? "finding to verify" : "findings to verify") : (basket.length === 1 ? "item collected" : "items collected")} · <b>${ver}</b> verified</p><button class="btn alt" data-tab="basket" style="margin-top:6px">Open basket</button></div>
+          <div class="card"><h3>ℹ️ Good to know</h3><p class="mut" style="margin:0">Everything here is an <b>observation for officer review</b>, not a conclusion. Click any evidence chip to see the original row.</p></div>
+        </div></div>` };
+  };
 
   VIEWS.import = () => {
     const issueTags = r => [
@@ -267,6 +313,12 @@
     else if (t.dataset.del !== undefined) { basket.splice(+t.dataset.del, 1); store.set("sn_basket", basket); go("basket"); }
     else if (t.dataset.showday) { $("#md").value = t.dataset.showday; $("#md").onchange(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   });
+  /* text size (A- / A / A+) and floating "Ask AI" button */
+  let fs = 1; try { fs = +localStorage.getItem("sn_fs") || 1; } catch (e) { }
+  const setFs = v => { fs = Math.min(1.3, Math.max(0.9, v)); document.body.style.zoom = fs; try { localStorage.setItem("sn_fs", fs); } catch (e) { } };
+  setFs(fs);
+  document.querySelectorAll("[data-fs]").forEach(b => b.onclick = () => setFs(b.dataset.fs === "0" ? 1 : fs + (+b.dataset.fs) * 0.1));
+  if ($("#askfab")) $("#askfab").onclick = () => go("assistant");
   $("#role").onchange = e => { role = e.target.value; if (!SESSION) $("#who").textContent = { inv: "RJ-IO-0421", rev: "RJ-RO-0107", adm: "RJ-AD-0001" }[role]; log("ROLE_SWITCH", ROLES[role]); toast("Role: " + ROLES[role]); go(tab); };
 
   const QS0 = new URLSearchParams(location.search); let SESSION = null;
@@ -286,7 +338,7 @@
     mk(E.ask(db, "203.0.113.45:41234 at 2026-03-07 22:47:10"), "ipdr", "AI observation");
     ["LOGIN console opened", "AI_QUERY Which numbers are common to both suspects? → common_numbers [supported]", "AI_QUERY Where was Suspect B on 20 March 2026? → unsupported [unsupported]", "EVIDENCE_OPEN airtel_suspectA_cdr.csv:10", "BASKET_ADD common-numbers", "IPDR_LOOKUP 203.0.113.45:41234 @ 2026-03-07 22:47:10", "VERIFIED common-numbers", "VERIFIED device-change", "VERIFIED co-location", "REPORT generated with 3 verified findings"].reverse().forEach(x => { const [a, ...d] = x.split(" "); log(a, d.join(" ")); });
   }
-  const h0 = location.hash.slice(1); renderNav(); go(VIEWS[h0] ? h0 : "import"); hashAll().then(() => { if (tab === "import") go("import"); });
+  const h0 = location.hash.slice(1); renderNav(); go(VIEWS[h0] ? h0 : "overview"); hashAll().then(() => { if (tab === "import") go("import"); });
   if (QS.get("report")) setTimeout(() => { const b = $("#brep"); b && b.click(); }, 300);
   if (QS.get("ev")) setTimeout(() => openEv(QS.get("ev")), 300);
 
