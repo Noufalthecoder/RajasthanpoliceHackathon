@@ -3,6 +3,7 @@
   const E = window.Engine, $ = s => document.querySelector(s);
   let db = E.load(window.RAW), tab = "import", role = "inv", map = null, graph = null;
   const SUBJ = { A: () => db.A, B: () => db.B };
+  const tl = s => (window.Lang ? Lang.t(s) : s);
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const ROLES = { inv: "Investigating Officer", rev: "Reviewing Officer", adm: "Administrator" };
   const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
@@ -10,7 +11,7 @@
   const who = () => $("#who").textContent;
 
   function log(action, detail) { audit.unshift({ t: new Date().toISOString().replace("T", " ").slice(0, 19), user: who(), role: ROLES[role], action, detail }); store.set("sn_audit", audit.slice(0, 300)); }
-  function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2200); }
+  function toast(m) { const t = $("#toast"); t.textContent = tl(m); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2200); }
   const ev = id => E.chips(db, [id]);
   const evs = ids => E.chips(db, ids);
   const tName = id => db.towerById[id] ? `${db.towerById[id].area_name} (${id})` : (id || "unknown");
@@ -39,7 +40,7 @@
     const n = ++langBusy;
     Lang.translateDom(document.body).catch(() => { if (n === langBusy) toast("Translation unavailable. Is the local server running (python tools/serve.py)?"); });
   }
-  function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); applyLang(); }
+  function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); }
 
   /* ---------- shared UI bits ---------- */
   const suspSel = (id, both) => `<select id="${id}"><option value="A">Suspect A · ${E.pretty(db.A)}</option><option value="B">Suspect B · ${E.pretty(db.B)}</option>${both ? '<option value="both">Both suspects</option>' : ""}</select>`;
@@ -61,12 +62,14 @@
     const cards = db.report.map(r => {
       const sample = r.key === "ipdr" ? [] : db.recs.filter(x => x.file === r.file).slice(0, 5);
       return `<div class="card"><div class="row"><h3 style="margin:0">${esc(r.file)}</h3><span class="tag ${r.key ? "t-grn" : "t-red"}">${esc(r.profile)}</span><span class="mut">${r.parsed} of ${r.rows} rows imported</span></div>
+      ${r.key && r.dupRows.length ? `<details style="margin:0 0 8px"><summary class="mut" style="cursor:pointer">Duplicate audit trail: ${r.dupRows.length} rows excluded from analysis (originals kept in the uploaded file)</summary><div class="mut" style="font-size:12px;margin-top:4px">${r.dupRows.map(d => `row ${d.row} repeats row ${d.of}`).join(" · ")}</div></details>` : ""}
       <div class="row">${r.key ? issueTags(r) : `<span class="tag t-red">${esc(r.notes[0])}</span>`}</div>
       ${r.key ? `<div class="grid g2"><div><b>Column mapping</b> <span class="mut">(auto-detected; operator profile)</span>
         <div class="scroll" style="max-height:230px"><table><tr><th>Canonical field</th><th>Source column</th></tr>${Object.entries(r.mapping).map(([k, v]) => `<tr><td>${k}</td><td><code>${esc(v)}</code></td></tr>`).join("")}</table></div></div>
         <div><b>Normalisation preview</b>${sample.length ? `<div class="scroll" style="max-height:230px"><table><tr><th>Row</th><th>Raw B-party</th><th>Normalised</th><th>Time (IST)</th></tr>${sample.map(x => `<tr><td>${x.row}</td><td><code>${esc(x.raw[r.mapping.other])}</code></td><td>${num(x.other)}</td><td>${E.fmt(x.ts)}</td></tr>`).join("")}</table></div>` : '<p class="mut" style="margin-top:8px">IPDR: IPs, ports and session times parsed as-is.</p>'}</div></div>` : ""}</div>`;
     }).join("");
     return { html: `<h2>Import & validation</h2><p class="lead">Format-agnostic import: operator profile detected from the header, columns mapped, numbers and timestamps normalised, problems reported, never hidden.</p>
+      <div class="card" style="border-left:4px solid var(--saffron)"><b>Assumptions applied on import:</b> source timestamps carry no timezone, so they are treated as IST (UTC+05:30) wall-clock time exactly as supplied; towers are matched on LAC + cell ID together (cell ID alone only as a fallback); the original row is always kept and shown in the evidence drawer.</div>
       <div class="grid g4" style="margin-bottom:16px"><div class="kpi"><b>${db.report.length}</b><span>files imported</span></div><div class="kpi"><b>${db.recs.length}</b><span>CDR records after de-duplication</span></div><div class="kpi"><b>${db.ipdr.length}</b><span>IPDR sessions</span></div><div class="kpi"><b>${db.towers.length}</b><span>towers in location list</span></div></div>
       <div class="card"><h3>Add another file</h3><div class="row"><input type="file" id="up" accept=".csv"><span class="mut">Any CSV in a known operator layout is detected and merged. Unknown layouts are flagged for manual mapping.</span></div></div>${cards}
       <div class="card"><h3>Source file integrity (SHA-256)</h3><table>${window.RAW.files.map(f => `<tr><td>${esc(f.name)}</td><td><code style="font-size:11px;word-break:break-all">${hashes[f.name] || "computing…"}</code></td></tr>`).join("")}</table></div>`,
@@ -84,7 +87,7 @@
       <div class="card"><h3>Activity by day <span class="mut">(night share in saffron)</span></h3>${(() => { const mx = Math.max(...days.map(d => dly[d].total)); return `<div class="bars">${days.map(d => `<div style="height:${dly[d].total / mx * 100}%;background:linear-gradient(0deg,var(--saffron) ${dly[d].night / dly[d].total * 100}%,var(--navy2) 0)" title="${d} · ${dly[d].total} (${dly[d].night} night)"></div>`).join("")}</div><div class="axis">${days.map(d => `<span>${d.slice(8)}</span>`).join("")}</div>`; })()}</div></div>
       <div class="card"><h3>Contacts ranked by interactions</h3><div class="scroll"><table><tr><th>#</th><th>Number</th><th>Total</th><th>Calls</th><th>SMS</th><th>Duration</th><th>Out/In</th><th>Night</th><th>First → last</th><th>Signals</th><th>Evidence</th></tr>
       ${c.slice(0, 15).map((x, i) => `<tr><td>${i + 1}</td><td>${num(x.num)}</td><td><b>${x.total}</b></td><td>${x.voice}</td><td>${x.sms}</td><td>${E.hms(x.dur)}</td><td>${x.out}/${x.in}</td><td>${x.night}</td><td>${E.fmt(x.first).slice(5, 16)} → ${E.fmt(x.last).slice(5, 16)}</td>
-        <td>${common.has(x.num) ? '<span class="tag t-red">shared with other suspect</span> ' : ""}${x.flags.map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${ev(x.recs[0].id)}${ev(x.recs[x.recs.length - 1].id)}</td></tr>`).join("")}</table></div></div>`; };
+        <td>${common.has(x.num) ? '<span class="tag t-red">shared with other suspect</span> ' : ""}${x.flags.map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evs(x.recs.map(r => r.id))}</td></tr>`).join("")}</table></div></div>`; };
       $("#ps").onchange = draw; draw(); } });
 
   VIEWS.graph = () => ({
@@ -97,15 +100,15 @@
         const min = +$("#gmin").value || 1, only = $("#gsh").checked, shared = new Set(E.common(db).map(x => x.num));
         const nodes = new Map(), edges = [], meta = {};
         const addN = (id, o) => { if (!nodes.has(id)) nodes.set(id, { id, ...o }); };
-        addN(db.A, { label: "Suspect A", shape: "dot", size: 34, color: { background: "#1f5bd8", border: "#0b2447" }, font: { color: "#0b2447", bold: true } });
-        addN(db.B, { label: "Suspect B", shape: "dot", size: 34, color: { background: "#ff9933", border: "#b35f00" }, font: { color: "#0b2447", bold: true } });
+        addN(db.A, { label: window.Lang ? Lang.t("Suspect A") : "Suspect A", shape: "dot", size: 34, color: { background: "#1f5bd8", border: "#0b2447" }, font: { color: "#0b2447", bold: true } });
+        addN(db.B, { label: window.Lang ? Lang.t("Suspect B") : "Suspect B", shape: "dot", size: 34, color: { background: "#ff9933", border: "#b35f00" }, font: { color: "#0b2447", bold: true } });
         ["A", "B"].forEach(w => E.contacts(db, w).forEach(c => {
           if (c.num === db.A || c.num === db.B) return; const sh = shared.has(c.num);
           if (only && !sh) return; if (c.total < min && !sh) return;
           addN(c.num, { label: E.pretty(c.num).slice(3), shape: "dot", size: 8 + Math.min(c.total, 60) * .45, color: sh ? { background: "#e53935", border: "#8a1c1c" } : { background: "#9aa7bd", border: "#5b6778" }, font: { size: 11 } });
           const id = w + "|" + c.num; meta[id] = { owner: SUBJ[w](), c }; edges.push({ id, from: SUBJ[w](), to: c.num, value: c.total, label: String(c.total), color: { color: sh ? "#e53935" : "#b8c2d6" }, font: { size: 10, align: "middle" } });
         }));
-        const dir = E.direct(db); if (dir.length) { meta["direct"] = { direct: true }; edges.push({ id: "direct", from: db.A, to: db.B, value: dir.length, label: dir.length + " direct", dashes: true, color: { color: "#ff9933" }, font: { size: 10 } }); }
+        const dir = E.direct(db); if (dir.length) { meta["direct"] = { direct: true }; edges.push({ id: "direct", from: db.A, to: db.B, value: dir.length, label: dir.length + " " + (window.Lang ? Lang.t("direct") : "direct"), dashes: true, color: { color: "#ff9933" }, font: { size: 10 } }); }
         if (graph) graph.destroy();
         graph = new vis.Network($("#graph"), { nodes: [...nodes.values()], edges }, { physics: { barnesHut: { gravitationalConstant: -5500, springLength: 130 }, stabilization: { iterations: 150 } }, edges: { scaling: { min: 1, max: 9 }, smooth: false }, interaction: { hover: true } });
         const show = (rows, title) => { $("#gdet").innerHTML = `<h3>${title}</h3><div class="scroll" style="max-height:380px"><table><tr><th>Owner</th><th>Time</th><th>Type</th><th>Dur</th><th>Tower</th><th>Ev</th></tr>${rows.slice(0, 60).map(r => `<tr><td>${r.owner === db.A ? "A" : "B"}</td><td>${E.fmt(r.ts).slice(5, 16)}</td><td>${r.dir} ${r.kind}</td><td>${r.dur || 0}s</td><td>${esc(r.tower || "?")}</td><td>${ev(r.id)}</td></tr>`).join("")}</table></div>${rows.length > 60 ? `<p class="mut">Showing 60 of ${rows.length}</p>` : ""}`; };
@@ -124,13 +127,13 @@
     return { html: `<h2>Cross-suspect correlation</h2><p class="lead">Numbers present in both datasets, shared contacts and repeated links.</p>
       <div class="grid g3" style="margin-bottom:16px"><div class="kpi"><b>${onlyA}</b><span>contacts only in Suspect A's records</span></div><div class="kpi" style="border-color:#e53935"><b style="color:#c62828">${c.length}</b><span>contacts common to both</span></div><div class="kpi"><b>${onlyB}</b><span>contacts only in Suspect B's records</span></div></div>
       <div class="card"><h3>Common numbers</h3><div class="scroll"><table><tr><th>Number</th><th>A interactions</th><th>B interactions</th><th>A night</th><th>B night</th><th>Signals</th><th>Evidence</th><th></th></tr>
-      ${c.map(x => { const t = `${E.pretty(x.num)} appears in both datasets: A ${x.a.total} interactions, B ${x.b.total}.`, ids = [x.a.recs[0].id, x.b.recs[0].id];
+      ${c.map(x => { const t = `${E.pretty(x.num)} appears in both datasets: A ${x.a.total} interactions, B ${x.b.total}.`, ids = [...x.a.recs.map(r => r.id), ...x.b.recs.map(r => r.id)];
         return `<tr><td>${num(x.num)}</td><td><b>${x.a.total}</b> <span class="mut">(${x.a.voice} calls)</span></td><td><b>${x.b.total}</b> <span class="mut">(${x.b.voice} calls)</span></td><td>${x.a.night}</td><td>${x.b.night}</td><td>${[...x.a.flags, ...x.b.flags].map(f => `<span class="tag t-amb">${f}</span>`).join(" ")}</td><td>${evs(ids)}</td><td>${addBtn(t, ids, "common-numbers")}</td></tr>`; }).join("")}</table></div></div>
       <div class="card"><h3>Direct Suspect A ↔ Suspect B contact</h3><p>${dir.length} records in A's file${dir.length ? ` between ${E.fmt(dir[0].ts)} and ${E.fmt(dir[dir.length - 1].ts)}` : ""}.</p><div class="scroll" style="max-height:220px"><table><tr><th>Time</th><th>Type</th><th>Duration</th><th>Tower</th><th>Evidence</th></tr>${dir.map(r => `<tr><td>${E.fmt(r.ts)}</td><td>${r.dir} ${r.kind}</td><td>${r.dur}s</td><td>${tName(r.tower)}</td><td>${ev(r.id)}</td></tr>`).join("")}</table></div></div>` };
   };
 
   VIEWS.map = () => ({
-    html: `<h2>Tower map & timeline</h2><p class="lead">Cell-tower locations from the supplied tower list. Pick a day to see the sequence of towers; the scrubber replays movement. Red rings mark windows where both suspects used the same tower.</p>
+    html: `<h2>Tower map & timeline</h2><p class="lead">Cell-tower locations from the supplied tower list. Pick a day to see the sequence of towers; the scrubber replays movement. Red rings mark shared cell-site activity: windows where both suspects’ records used the same tower. A tower covers an area, so this is a lead to corroborate, not proof the two met.</p>
       <div class="row">${suspSel("ms", true)}<select id="md"></select><label>Replay <input type="range" id="mstep" min="0" max="0" value="0" style="vertical-align:middle"></label><button class="btn sm" id="mplay">▶ Play</button><span class="mut" id="mlab"></span></div>
       <div id="map"></div><div id="mtl" style="margin-top:16px"></div>`,
     after() {
@@ -147,18 +150,18 @@
         db.towers.forEach(t => L.circleMarker([t.lat, t.lon], { radius: 4, color: "#9aa7bd", fillOpacity: .6 }).bindTooltip(`${t.area_name} (${t.tower_id})`).addTo(layer));
         const stays = {}; ws.forEach(x => stays[x] = E.stays(db, x, day || null));
         const maxStep = day ? Math.max(...ws.map(x => stays[x].length)) : 0; const st = $("#mstep"); st.max = maxStep; if (+st.value > maxStep) st.value = maxStep;
-        if (!day) { ws.forEach(x => E.towerUse(db, x).forEach(u => { const t = db.towerById[u.tower]; L.circleMarker([t.lat, t.lon], { radius: 5 + Math.sqrt(u.n) * 2.2, color: colors[x], fillOpacity: .35, weight: 2 }).bindPopup(`<b>${t.area_name}</b><br>${label(SUBJ[x]())}: ${u.n} records on ${u.days.size} days`).addTo(layer); })); $("#mlab").textContent = "Circle size = number of records"; }
+        if (!day) { ws.forEach(x => E.towerUse(db, x).forEach(u => { const t = db.towerById[u.tower]; L.circleMarker([t.lat, t.lon], { radius: 5 + Math.sqrt(u.n) * 2.2, color: colors[x], fillOpacity: .35, weight: 2 }).bindPopup(`<b>${t.area_name}</b><br>${tl(label(SUBJ[x]()))}: ${tl("records")} ${u.n} · ${tl("days")} ${u.days.size}`).addTo(layer); })); $("#mlab").textContent = tl("Circle size = number of records"); }
         else {
-          const step = +st.value || maxStep; $("#mlab").textContent = `Step ${step} of ${maxStep}`;
+          const step = +st.value || maxStep; $("#mlab").textContent = `${tl("Step")} ${step} / ${maxStep}`;
           ws.forEach(x => { const s = stays[x].slice(0, step), pts = s.map(y => [db.towerById[y.tower].lat, db.towerById[y.tower].lon]); if (pts.length > 1) L.polyline(pts, { color: colors[x], weight: 3, dashArray: x === "B" ? "6 6" : null }).addTo(layer);
-            s.forEach((y, i) => L.marker(pts[i], { icon: L.divIcon({ className: "", html: `<div style="background:${colors[x]};color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font:700 11px Inter;border:2px solid #fff;box-shadow:0 1px 4px #0006">${i + 1}</div>` }) }).bindPopup(`<b>${label(SUBJ[x]())}</b><br>${tName(y.tower)}<br>${E.fmt(y.start).slice(11, 16)}–${E.fmt(y.end).slice(11, 16)}`).addTo(layer)); });
-          co.filter(g => g.day === day).forEach(g => { const t = db.towerById[g.tower]; L.circle([t.lat, t.lon], { radius: 700, color: "#c62828", fillColor: "#e53935", fillOpacity: .15, weight: 3 }).bindPopup(`<b>Both suspects here</b><br>${t.area_name} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}`).addTo(layer); });
+            s.forEach((y, i) => L.marker(pts[i], { icon: L.divIcon({ className: "", html: `<div style="background:${colors[x]};color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font:700 11px Inter;border:2px solid #fff;box-shadow:0 1px 4px #0006">${i + 1}</div>` }) }).bindPopup(`<b>${tl(label(SUBJ[x]()))}</b><br>${tName(y.tower)}<br>${E.fmt(y.start).slice(11, 16)}–${E.fmt(y.end).slice(11, 16)}`).addTo(layer)); });
+          co.filter(g => g.day === day).forEach(g => { const t = db.towerById[g.tower]; L.circle([t.lat, t.lon], { radius: 700, color: "#c62828", fillColor: "#e53935", fillOpacity: .15, weight: 3 }).bindPopup(`<b>${tl("Shared cell-site activity")}</b><br>${t.area_name} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}`).addTo(layer); });
         }
         const rows = []; ws.forEach(x => stays[x].forEach(y => rows.push({ x, y })));
         $("#mtl").innerHTML = `<div class="grid g2"><div class="card"><h3>${day ? "Tower sequence on " + day : "Most-used towers"}</h3><div class="scroll"><table>` + (day
           ? `<tr><th>Who</th><th>Tower</th><th>From</th><th>To</th><th>Records</th><th>Ev</th></tr>` + rows.sort((p, q) => p.y.start - q.y.start).map(({ x, y }) => `<tr><td>${x}</td><td>${tName(y.tower)}</td><td>${E.fmt(y.start).slice(11, 16)}</td><td>${E.fmt(y.end).slice(11, 16)}</td><td>${y.n}</td><td>${ev(y.recs[0].id)}</td></tr>`).join("")
           : `<tr><th>Who</th><th>Tower</th><th>Records</th><th>Days</th><th>Night use</th></tr>` + ws.flatMap(x => E.towerUse(db, x).slice(0, 6).map(u => `<tr><td>${x}</td><td>${tName(u.tower)}</td><td>${u.n}</td><td>${u.days.size}</td><td>${u.nightN}</td></tr>`)).join("")) + `</table></div></div>
-          <div class="card"><h3>Same tower, same time (±15 min)</h3>${co.length ? co.map(g => { const t = `Both suspects used ${tName(g.tower)} on ${g.day} between ${E.fmt(g.from).slice(11, 16)} and ${E.fmt(g.to).slice(11, 16)} (${g.a.length} records for A, ${g.b.length} for B).`, ids = [g.a[0].id, g.b[0].id];
+          <div class="card"><h3>Shared cell-site activity (±15 min)</h3>${co.length ? co.map(g => { const t = `Shared cell-site activity: both suspects’ records used ${tName(g.tower)} on ${g.day} between ${E.fmt(g.from).slice(11, 16)} and ${E.fmt(g.to).slice(11, 16)} (${g.a.length} records for A, ${g.b.length} for B).`, ids = [...g.a.map(r => r.id), ...g.b.map(r => r.id)];
           return `<div class="f"><b>${tName(g.tower)}</b> · ${g.day} ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}<br>${evs(ids)} <button class="btn sm alt" data-showday="${g.day}">Show on map</button> ${addBtn(t, ids, "co-location")}</div>`; }).join("") : '<p class="mut">None found.</p>'}</div></div>`;
       };
       $("#ms").onchange = $("#md").onchange = () => { $("#mstep").value = 0; draw(); }; $("#mstep").oninput = draw;
@@ -177,11 +180,11 @@
 
   VIEWS.ipdr = () => ({
     html: `<h2>IPDR lookup</h2><p class="lead">Public IPs are shared by many subscribers (carrier-grade NAT). Only public IP + source port + timestamp identifies a session.</p>
-      <div class="card"><div class="row"><label>Public IP <input type="text" id="ii" value="203.0.113.45" style="width:140px"></label><label>Source port <input type="text" id="ip" value="41234" style="width:90px"></label><label>Date-time (IST) <input type="text" id="it" value="2026-03-07 22:47:10" style="width:170px"></label><button class="btn" id="irun">Resolve</button></div><div id="ires"></div></div>
-      <div class="card"><h3>Suspect A: app / service indicators</h3><p class="mut">From the supplied destination-IP → service mapping. Unmapped destinations stay "unidentified".</p><table><tr><th>Service indicator</th><th>Sessions</th><th>Uploaded</th><th>Downloaded</th><th>Evidence</th></tr>${E.serviceUse(db, db.A).map(u => `<tr><td>${esc(u.service)}</td><td>${u.n}</td><td>${(u.up / 1e6).toFixed(1)} MB</td><td>${(u.down / 1e6).toFixed(1)} MB</td><td>${ev(u.rec.id)}</td></tr>`).join("")}</table></div>`,
+      <div class="card"><div class="row"><label>Public IP <input type="text" id="ii" value="203.0.113.45" style="width:140px"></label><label>Source port <input type="text" id="ip" value="41234" style="width:90px"></label><label>Protocol <select id="ipr"><option value="">Any</option><option>TCP</option><option>UDP</option></select></label><label>Date-time (IST) <input type="text" id="it" value="2026-03-07 22:47:10" style="width:170px"></label><button class="btn" id="irun">Resolve</button></div><div id="ires"></div></div>
+      <div class="card"><h3>Suspect A: mapped service indicators (not confirmed app usage)</h3><p class="mut">From the supplied destination-IP → service mapping. Unmapped destinations stay "unidentified".</p><table><tr><th>Service indicator</th><th>Sessions</th><th>Uploaded</th><th>Downloaded</th><th>Evidence</th></tr>${E.serviceUse(db, db.A).map(u => `<tr><td>${esc(u.service)}</td><td>${u.n}</td><td>${(u.up / 1e6).toFixed(1)} MB</td><td>${(u.down / 1e6).toFixed(1)} MB</td><td>${ev(u.rec.id)}</td></tr>`).join("")}</table></div>`,
     after() { $("#irun").onclick = () => { const ip = $("#ii").value.trim(), port = +$("#ip").value, m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec($("#it").value.trim());
       if (!m) { $("#ires").innerHTML = '<p class="bad">Enter time as YYYY-MM-DD HH:MM:SS</p>'; return; }
-      const ts = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]), r = E.ipLookup(db, ip, port, ts); log("IPDR_LOOKUP", `${ip}:${port} @ ${E.fmt(ts)}`);
+      const ts = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]), r = E.ipLookup(db, ip, port, ts, $("#ipr").value || null); log("IPDR_LOOKUP", `${ip}:${port} ${$("#ipr").value || "any-protocol"} @ ${E.fmt(ts)}`);
       if (!r.overlap.length) { $("#ires").innerHTML = `<p class="bad"><b>The uploaded data does not support this.</b> No IPDR session for ${esc(ip)} covers that time.</p>`; return; }
       if (!r.exact.length) { $("#ires").innerHTML = `<p class="bad"><b>No session matches port ${port}.</b> ${r.subscribers.length} subscribers used this IP then; the port does not belong to any of them.</p>`; return; }
       const x = r.exact[0], t = `${label(x.owner)} (${E.pretty(x.owner)}) held ${ip}:${port} from ${E.fmt(x.start)} to ${E.fmt(x.end)}; destination ${x.dest}:${x.dport}${x.service ? " (" + x.service + ")" : ""}, tower ${tName(x.tower)}.`;
@@ -221,7 +224,7 @@
         $("#bclr").onclick = () => { basket = []; store.set("sn_basket", basket); log("BASKET", "cleared"); go("basket"); };
         $("#brep").onclick = () => { log("REPORT", `generated with ${ver.length} verified findings`); $("#rep").innerHTML = `<div class="report"><div class="row noprint"><button class="btn" onclick="window.print()">🖨 Print / Save as PDF</button><button class="btn alt" id="rcsv">⬇ Excel (CSV)</button></div>
           <h1>Investigation report (DRAFT for officer review)</h1><p class="mut">Case PS03-DEMO-001 · Operation Mirage · Generated ${new Date().toISOString().slice(0, 16).replace("T", " ")} · by ${esc(who())} (${ROLES[role]})</p><p style="margin-top:8px;color:#8a4b00"><b>Synthetic hackathon data.</b> AI output is advisory. Only the findings below were verified by an officer.</p>
-          <h3 style="margin:16px 0 6px">Verified findings (${ver.length})</h3>${ver.length ? "<ol style='padding-left:20px'>" + ver.map(b => `<li style="margin-bottom:12px">${esc(b.html)}<br><span class="mut">Verified by ${esc(b.by2)} at ${b.vat} · Evidence:</span> ${b.ev.map(id => { const e = db.ev[id]; return e ? `<code style="font-size:11px">${e.file} row ${e.row}</code>` : ""; }).join(", ")}</li>`).join("") + "</ol>" : "<p class='mut'>No verified findings yet.</p>"}
+          <h3 style="margin:16px 0 6px">Verified findings (${ver.length})</h3>${ver.length ? "<ol style='padding-left:20px'>" + ver.map(b => `<li style="margin-bottom:12px">${esc(b.html)}<br><span class="mut">Verified by ${esc(b.by2)} at ${b.vat} · Evidence (${b.ev.length} records):</span> ${b.ev.slice(0, 6).map(id => { const e = db.ev[id]; return e ? `<code style="font-size:11px">${e.file} row ${e.row}</code>` : ""; }).join(", ")}${b.ev.length > 6 ? ` <span class="mut">+${b.ev.length - 6} more (complete list in the Excel/CSV export)</span>` : ""}</li>`).join("") + "</ol>" : "<p class='mut'>No verified findings yet.</p>"}
           <p class="mut">${basket.length - ver.length} unverified or rejected item(s) excluded.</p>
           <h3 style="margin:16px 0 6px">Source files (SHA-256)</h3><table>${window.RAW.files.map(f => `<tr><td>${esc(f.name)}</td><td><code style="font-size:10px;word-break:break-all">${hashes[f.name] || ""}</code></td></tr>`).join("")}</table></div>`;
           $("#rcsv").onclick = () => { const rows = [["status", "finding", "evidence", "verified_by", "verified_at"], ...ver.map(b => ["Verified", b.html, b.ev.map(id => { const e = db.ev[id]; return e ? e.file + " row " + e.row : ""; }).join("; "), b.by2, b.vat])]; const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n"); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "PS03-DEMO-001_verified_findings.csv"; a.click(); log("EXPORT", "csv"); };
@@ -243,10 +246,20 @@
     d.classList.add("open"); $("#dx").onclick = () => d.classList.remove("open");
   }
 
+  function openEvList(ids) {
+    log("EVIDENCE_LIST", ids.length + " records");
+    const rows = ids.map(id => db.ev[id]).filter(Boolean), d = $("#drawer");
+    d.innerHTML = `<div class="row"><h3 style="margin:0">All supporting records (${rows.length})</h3><span style="flex:1"></span><button class="btn sm alt" id="dx">Close ✕</button></div>
+      <p class="mut" style="margin-bottom:8px">Every record that contributes to this finding. Click a row reference for the raw source row.</p>
+      <div class="scroll" style="max-height:80vh"><table><tr><th>Source row</th><th>Time</th><th>Other party / IP</th><th>Type</th><th>Tower</th></tr>${rows.slice(0, 600).map(r => r.pubIp ? `<tr><td>${ev(r.id)}</td><td>${E.fmt(r.start)}</td><td>${r.pubIp}:${r.pubPort}</td><td>${r.proto || "session"}</td><td>${esc(r.tower || "?")}</td></tr>` : `<tr><td>${ev(r.id)}</td><td>${E.fmt(r.ts)}</td><td>${num(r.other)}</td><td>${r.dir} ${r.kind}</td><td>${esc(r.tower || "?")}</td></tr>`).join("")}</table></div>${rows.length > 600 ? `<p class="mut">Showing 600 of ${rows.length}</p>` : ""}`;
+    d.classList.add("open"); $("#dx").onclick = () => d.classList.remove("open");
+  }
+
   /* ---------- global events ---------- */
   document.addEventListener("click", e => {
-    const t = e.target.closest("[data-tab],[data-ev],[data-add],[data-ask],[data-ver],[data-rej],[data-del],[data-showday]"); if (!t) { return; }
+    const t = e.target.closest("[data-tab],[data-evlist],[data-ev],[data-add],[data-ask],[data-ver],[data-rej],[data-del],[data-showday]"); if (!t) { return; }
     if (t.dataset.tab) go(t.dataset.tab);
+    else if (t.dataset.evlist) openEvList(t.dataset.evlist.split(","));
     else if (t.dataset.ev) openEv(t.dataset.ev);
     else if (t.dataset.add) { const o = JSON.parse(t.dataset.add); basket.push({ html: o.html, ev: o.ev, src: o.src, status: "AI observation", at: new Date().toISOString().slice(0, 16).replace("T", " "), by: who() }); store.set("sn_basket", basket); log("BASKET_ADD", o.src); renderNav(); toast("Added to evidence basket (pending verification)"); t.disabled = true; t.textContent = "✔ Added"; }
     else if (t.dataset.ask) window.__ask(t.dataset.ask);
@@ -257,7 +270,7 @@
   $("#role").onchange = e => { role = e.target.value; $("#who").textContent = { inv: "RJ-IO-0421", rev: "RJ-RO-0107", adm: "RJ-AD-0001" }[role]; log("ROLE_SWITCH", ROLES[role]); toast("Role: " + ROLES[role]); go(tab); };
 
   log("LOGIN", "console opened (demo, mocked authentication)");
-  if (window.Lang) Lang.mount($("#lang"), () => { log("LANGUAGE", Lang.lang); go(tab); });
+  if (window.Lang) Lang.mount($("#lang"), () => { log("LANGUAGE", Lang.lang); go(tab); Lang.translateDom(document.body).catch(() => { }); }).then(() => { if (Lang.on()) Lang.translateDom(document.body).catch(() => { }); });
   const QS = new URLSearchParams(location.search);
   if (QS.get("demo")) {   // demo state for screenshots / rehearsal: reviewer role + seeded basket
     role = "rev"; $("#role").value = "rev"; $("#who").textContent = "RJ-RO-0107";
@@ -272,4 +285,19 @@
   const h0 = location.hash.slice(1); renderNav(); go(VIEWS[h0] ? h0 : "import"); hashAll().then(() => { if (tab === "import") go("import"); });
   if (QS.get("report")) setTimeout(() => { const b = $("#brep"); b && b.click(); }, 300);
   if (QS.get("ev")) setTimeout(() => openEv(QS.get("ev")), 300);
+
+  /* ---- i18n collector: ?collect=1&demo=1 visits every screen/state and dumps the translatable strings (used by tools/build_i18n.py) ---- */
+  if (QS.get("collect") && window.Lang) (async () => {
+    Lang.collecting = true; const all = new Set(), sleep = ms => new Promise(r => setTimeout(r, ms));
+    const grab = () => Lang.collectCores(document.body).forEach(x => all.add(x));
+    for (const t of Object.keys(VIEWS)) { go(t); await sleep(150); grab(); }
+    go("map"); await sleep(250); const md = $("#md"); if (md) { md.value = "2026-03-06"; md.onchange(); await sleep(150); grab(); }
+    go("assistant"); await sleep(100);
+    for (const q of ["Show the most frequent contacts of both suspects", "Which numbers are common to both suspects?", "दोनों संदिग्धों के बीच common numbers कौन से हैं?", "Any IMEI or SIM changes?", "Were the suspects ever at the same tower?", "Night-time activity of Suspect A", "Night-time activity of Suspect B", "Which subscriber had 203.0.113.45:41234 at 2026-03-07 22:47:10?", "Where was Suspect B on 20 March 2026?", "What was said in the calls?", "Summarise the case", "Where was Suspect A on 6 March?", "calls on 6 March", "app usage of suspect A", "Who owns +91 98000 30003?", "tower timeline for suspect B", "gibberish question"]) { await window.__ask(q); }
+    await sleep(100); grab();
+    go("basket"); await sleep(100); grab(); const b = $("#brep"); if (b) { b.click(); await sleep(100); grab(); }
+    openEv("airtel_suspectA_cdr.csv:10"); await sleep(50); grab(); openEv("ipdr_suspectA.csv:419"); await sleep(50); grab(); openEv("jio_suspectB_cdr.csv:2"); await sleep(50); grab();
+    const out = [...new Set([...all, ...Lang.templates])];
+    document.body.insertAdjacentHTML("beforeend", '<pre id="__collected"></pre>'); document.getElementById("__collected").textContent = JSON.stringify(out);
+  })();
 })();

@@ -309,17 +309,18 @@ IPDR record: `id, file, row, owner, pubIp, pubPort, dest, dport, start, end, tow
 | Field | Rule |
 |---|---|
 | Phone number | Strip non-digits. 10 digits → prefix `91`. 11 digits starting `0` → replace `0` with `91`. Must end up 12 digits, else the row is rejected as unparseable. A bare `+` prefix is **not** counted as a "fix" |
+| Timezone | Source files carry no timezone, so timestamps are treated as **IST (UTC+05:30) wall-clock time exactly as supplied**; the assumption is shown on the Import screen and the original value stays in the raw row. Final build: explicit per-operator timezone setting, stored as UTC alongside the original |
 | Timestamp | Airtel: `Date` + `Time`. Jio: `dd-mm-yyyy HH:MM:SS`. IPDR: `yyyy-mm-dd HH:MM:SS`. Stored as UTC-epoch of the wall-clock value; all displays are IST wall-clock |
 | Duration | Airtel: seconds. Jio: `hh:mm:ss` → seconds. Blank voice duration → imputed from `end − start` and flagged; blank SMS duration → 0 |
 | Direction | Airtel: `MOC`/`SMS-MO` → OUT, else IN. Jio: `direction` column |
 | Kind | Airtel: `SMS-*` → SMS else VOICE. Jio: `service_type` |
-| Tower | Airtel: last segment of `First CGI`. Jio: segment after `|`. Looked up in `tower_list.csv` by `cell_id`. Unmapped cells are counted and reported |
+| Tower | Matched on **LAC + cell ID together** (cell ID alone only as a fallback). Airtel: LAC and cell from `First CGI`; Jio: `lac` column and the cell after `|`. Jio: segment after `|`. Looked up in `tower_list.csv` by `cell_id`. Unmapped cells are counted and reported |
 | Service | `dest_ip:dest_port` looked up in `service_map.csv`. No match → "Unidentified". **Never guessed** |
 
 ### 7.4 Validation report (shown per file)
 Rows imported vs total · duplicate rows removed · phone numbers normalised · rows missing IMEI · blank durations (imputed vs set to 0) · unparseable rows · cells not found in tower list. Unknown headers are flagged **"UNRECOGNISED, map columns manually"** rather than silently failing.
 
-Duplicate key: `owner | other | ts | dur | kind | dir`.
+Duplicate key: `owner | other | ts | dur | kind | dir`. Duplicates are excluded from analysis but **never deleted from the source**: the Import screen keeps an audit trail ("row 306 repeats row 12").
 
 ### 7.5 Adding a new operator or the official R4C format
 Add an entry to `PROFILES` in `console/engine.js`:
@@ -359,8 +360,8 @@ Walk the owner's records in time order; collapse **consecutive records on the sa
 Per tower: record count, distinct days, first/last, and **night use** (22:00–05:59). Repeated-visit rule used by the assistant: a tower visited on **≥ 3 distinct days with ≤ 10 records** is reported as "repeated short visits".
 Residence-area inference = tower with the highest night use, **always labelled as an inference to be verified**.
 
-### 8.6 Co-location `E.coloc(db, winMin = 15)`
-For every A record on tower *t*, find B records on the same tower within ±15 minutes. Group by `(tower, day)`. Keep groups with **≥ 2 records from each suspect** (suppresses coincidences). Output window `[min ts, max ts]` with both record sets as evidence. Verified: exactly the 2 planted windows are found.
+### 8.6 Shared cell-site activity `E.coloc(db, winMin = 15)` (UI label: "shared cell-site activity")
+For every A record on tower *t*, find B records on the same tower within ±15 minutes. Group by `(tower, day)`. Keep groups with **≥ 2 records from each suspect** (suppresses coincidences). Output window `[min ts, max ts]` with both record sets as evidence. Verified: exactly the 2 planted windows are found. **Interpretation:** a tower covers an area, so this is a lead to corroborate, **not proof that two people met**; every screen and answer says so. Implementation indexes the second suspect's records by tower and binary-searches the time window (was quadratic).
 
 ### 8.7 Device changes `E.devices(db, who)`
 Walk records with a non-blank IMEI or IMSI in time order, tracking the current identity.
@@ -370,7 +371,7 @@ Blank values are skipped, not treated as a change. Evidence = the last record be
 
 ### 8.8 IPDR resolution `E.ipLookup(db, ip, port, ts)`
 - `overlap` = sessions with the same public IP whose `[start, end]` contains `ts`
-- `exact` = `overlap` where `pubPort === port`
+- `exact` = `overlap` where `pubPort === port` (and, when given, the same transport **protocol**)
 - Reports the subscribers sharing the IP, and rules out the others by port.
 - **IP alone is never treated as conclusive** (CGNAT).
 
@@ -414,7 +415,7 @@ The planner is the **only** part that is "AI". In the prototype it is a keyword 
 ### 9.3 Evidence linking
 - Every record has an ID `"<file>:<row>"` where `row` is the **source file line number** (header = row 1, so the first data row is row 2, matching Excel).
 - Findings render chips like `airtel_suspectA_cdr.csv · row 412`. Clicking a chip opens a drawer showing the **normalised values and the raw row as uploaded**.
-- Aggregated claims attach representative first/last records so any figure can be spot-checked.
+- **Aggregate claims carry every contributing record.** A count such as "52 interactions" shows three chips and a "+49 more · all 52 records" link that opens a list of all supporting rows, so the count can be independently substantiated. The report lists the first 6 and points to the complete list in the CSV/Excel export.
 
 ### 9.4 Refusal rules ("the uploaded data does not support this")
 | Situation | Behaviour |
@@ -463,7 +464,7 @@ RULES
 | Integrity | SHA-256 of each source file (computed with Web Crypto) shown in Import and in the report | Hash stored in DB on upload; verified before every analysis |
 | Query & activity logs | Client-side log of LOGIN, VIEW, AI_QUERY, EVIDENCE_OPEN, BASKET_ADD, VERIFIED/REJECTED, EXPORT, UPLOAD (localStorage) | Append-only server table; tamper-evident hash chain; export for audit |
 | Human verification | Basket gate + reviewer-only verify | Same, plus two-person rule option |
-| LLM privacy | n/a (no LLM) | LLM receives tool arguments and aggregated results with evidence ids; never raw files; PII masking option for numbers |
+| LLM privacy | n/a (no LLM) | LLM receives tool arguments and aggregated results with evidence ids; **never raw files**; numbers pseudonymised before leaving the deployment (data minimisation); approved local-model option for sensitive cases |
 | Prompt-injection safety | n/a | Uploaded content is treated as data; tool outputs are sanitised; assistant cannot call write tools |
 
 Threats considered: evidence tampering (hashes), unauthorised access (RBAC), over-trust in AI (verification gate), data leakage to a model provider (minimal, aggregated payloads; on-prem option), repudiation (audit log).
@@ -784,6 +785,17 @@ React pages mirror the prototype views. The prototype's HTML/JS can be ported co
 event counts per suspect · common-number set · top-5 contacts · direct A↔B count · night activity · IMEI swap A · SIM swap B · co-location windows (tower + count) · IPDR incident → Suspect A · refusals (out-of-range date, call content, owner lookup) · Hindi common-numbers intent · 8 intent-routing checks.
 Because `ground_truth.json` is computed from the generator's events, regenerating the data keeps tests honest.
 
+### 13.1b Performance benchmark ✅ (`node tools/bench_engine.js 50000`, 2 suspects × 50,000 = 100,000 records, synthetic)
+| Step | Time |
+|---|---|
+| Import + normalise + validate (2 CDR files) | ~1.5 s |
+| Contacts for a suspect | ~0.1 s |
+| Common numbers | ~0.2 s |
+| Shared cell-site activity (15 min window) | ~0.2 s |
+| Device changes / tower stays | < 0.1 s |
+| Assistant question end to end | ~0.2 s |
+Measured on the developer laptop in Node; browser timing is similar. Synthetic data, so treat as an order-of-magnitude figure, not a guarantee.
+
 ### 13.2 Manual checklist before each demo
 - [ ] Import page shows 3 files, 8 duplicates removed, no unparseable rows
 - [ ] Graph shows red shared nodes and the dashed A↔B edge
@@ -883,11 +895,12 @@ Example auto-run: `console/console.html?ask=Any%20IMEI%20changes%3F#assistant`.
 ---
 
 ### 17.1 Language support (Sarvam AI) ✅
-- UI language picker on the landing page and console: English, हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, मराठी, ଓଡ଼ିଆ, ਪੰਜਾਬੀ, தமிழ், తెలుగు.
-- `console/lang.js` collects visible text nodes (skipping evidence chips, code, numbers and file names) and sends them to `POST /api/translate` on the local server `tools/serve.py`, which calls Sarvam's `mayura:v1` translation API. **The API key lives only in the server's environment or a git-ignored `.env`; it is never sent to the browser or committed.**
-- Per-string fallback: if Sarvam rejects one string, that string stays English and the rest still translate. Results are cached in `.cache/translate.json` for offline demos.
-- Assistant: a question typed in any supported language is first tried with the built-in keyword planner; if that does not recognise it, it is translated to English via Sarvam and retried (the translated text is shown in the query plan). Answers are translated for display; numbers and evidence ids are unchanged.
-- Limits: machine translation of technical terms is literal; the planner remains English/Hindi-keyword based until the LLM planner is built.
+- Picker on the landing page and console: English, हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, मराठी, ଓଡ଼ିଆ, ਪੰਜਾਬੀ, தமிழ், తెలుగు.
+- **Instant switching:** `tools/build_i18n.py` visits every screen and state in headless Chrome (assistant answers, report, evidence drawer included), collects every UI string, translates them with Sarvam's `mayura:v1`, and writes `console/i18n/<lang>.js`. At run time `console/lang.js` looks strings up synchronously, so a click changes the whole page immediately, offline, and from a double-clicked file (no server, no key).
+- **Live translation:** a MutationObserver translates content added later (drawer, report, map pop-ups, graph details, assistant answers). Canvas labels (graph, map step counter) use `Lang.t()`.
+- **Fallback:** strings not in a bundle (e.g. data the collector never saw) go to `POST /api/translate` on `tools/serve.py`, which calls Sarvam with batching (about 18 strings per request), 2 parallel requests and back-off on HTTP 429; failures are never cached. The API key lives only in the server's environment or a git-ignored `.env`.
+- Assistant: a question typed in any supported language is first tried with the built-in Hindi/English keyword planner; if unrecognised it is translated to English via Sarvam (needs the server) and retried.
+- Limits: machine translation of technical terms is literal; numbers, file names, evidence chips and the query-plan JSON stay in English by design.
 
 ## 18. Limitations and honesty statement
 - All data is **synthetic**; operator layouts are our approximation. The official R4C sample has not yet been tested.
@@ -906,3 +919,26 @@ Example auto-run: `console/console.html?ask=Any%20IMEI%20changes%3F#assistant`.
 - **Delhi Police Parade:** Antônio Milena / Agência Brasil, Wikimedia Commons, CC BY 3.0.
 - **Map data:** © OpenStreetMap contributors. **Libraries:** Leaflet, vis-network.
 - Built by Team HackCrew with AI assistance from Claude.
+
+---
+
+## 20. External review notes (evaluated, not just accepted)
+An outside review of this project was assessed point by point against the code and sources.
+
+| Recommendation | Verdict | Action |
+|---|---|---|
+| Call it "evidence-traceable investigation support", not an AI dashboard | Agree | Positioning line used in the deck |
+| Tower overlap must not be presented as proof two people met | Agree, correct | Relabelled "shared cell-site activity" everywhere, with an explicit caveat |
+| IPDR match should include protocol | Agree | Protocol added to the matching key, query form and answers |
+| Aggregate counts must link to all contributing records, not a sample | Agree, strong point | "+N more · all N records" drill-down built; findings carry all record ids |
+| Keep an audit trail of removed duplicates | Agree | Duplicate audit trail on the Import screen |
+| Match towers on LAC + cell ID, not cell ID alone | Agree | Implemented with cell-ID fallback |
+| State timezone handling explicitly | Agree | IST assumption shown on Import and documented; per-operator setting planned |
+| Label service mapping as indicators, not confirmed app use | Agree | Wording updated |
+| No performance benchmark yet | True | Benchmark added (above) |
+| Data minimisation / pseudonymisation for external LLM calls | Agree | Added to the security design |
+| Do not present planned features as built | Agree | Status legend already separates built / prototype / planned |
+| "NIA 2024 UAPA handbook has a chapter on CDR/IPDR" | **Could not verify** | Not cited anywhere |
+| "RFC 6888 says subscriber identification needs IP + port + timestamp" | **Could not verify**; RFC 6269 is the better-supported reference for logging source ports | Not cited; IETF draft and BAE Systems remain the references |
+| Rajasthan High Court directed a state cyber-crime centre "on the lines of I4C" | Partly verified (press report); date not confirmed | Mentioned only as context, with the caveat |
+| Deadline discrepancy (6 PM vs 11:59 PM) | Fair | 11:59 PM IST is the portal deadline; 6 PM is our own buffer |

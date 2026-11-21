@@ -12,10 +12,10 @@ Team HackCrew · Cyber Security Hackathon 2026 · Hackathon prototype, synthetic
 - `node tools/test_engine.js`: checks the engine against `data/ground_truth.json`
 - `python tools/build_embed.py`: re-embed the CSVs into `console/data.js` after regenerating data
 
-## Language switching (Sarvam AI)
-The landing page and console have a language picker (English + 10 Indian languages). Text is translated through
-Sarvam AI's `mayura:v1` model by a small local proxy in `tools/serve.py`; identifiers, numbers and evidence chips are never translated.
-1. Copy `.env.example` to `.env` and put your Sarvam key in it (`.env` is git-ignored; **never commit a key**).
-2. `python tools/serve.py` (not `http.server`) and open http://localhost:8000
-3. Pick a language in the header. Translations are cached in `.cache/` so a demo keeps working if the internet drops.
-Without the local server the picker stays on English. The assistant also translates a non-English question to English when the built-in Hindi keywords do not recognise it.
+## Language switching (instant, 10 Indian languages + English)
+The landing page and console have a language picker. Switching is **instant**: every UI string is pre-translated with Sarvam AI
+(`mayura:v1`) into `console/i18n/<lang>.js`, so it works offline, from a double-clicked file, and without any API key at run time.
+- **Live:** a MutationObserver translates anything that appears later (evidence drawer, report, map pop-ups, graph details, assistant answers).
+- **Fallback:** a string missing from a bundle (e.g. new data) is translated on demand by the local proxy `tools/serve.py` (needs `SARVAM_API_KEY` in a git-ignored `.env`; copy `.env.example`).
+- **Rebuild bundles** after changing UI text: `python tools/serve.py` then, in another terminal, `python tools/build_i18n.py`.
+- Never translated: numbers, file names, evidence chips, code. **Never commit a key.**

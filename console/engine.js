@@ -59,7 +59,8 @@
   E.load = function (RAW) {
     const towers = E.parseCSV(RAW.towers).rows;
     const towerById = {}, cellTo = {};
-    towers.forEach(t => { t.lat = +t.latitude; t.lon = +t.longitude; towerById[t.tower_id] = t; cellTo[t.cell_id] = t; });
+    const lacCell = {};
+    towers.forEach(t => { t.lat = +t.latitude; t.lon = +t.longitude; towerById[t.tower_id] = t; cellTo[t.cell_id] = t; lacCell[t.lac + "|" + t.cell_id] = t; });
     const services = {}; E.parseCSV(RAW.services).rows.forEach(r => services[r.dest_ip + ":" + r.dest_port] = r.service_indicator);
     const db = { recs: [], ipdr: [], towers, towerById, report: [], ev: {}, subjects: {}, services };
 
@@ -67,10 +68,10 @@
       const p = E.parseCSV(f.text);
       const key = Object.keys(PROFILES).find(k => PROFILES[k].sig(p.header));
       const rep = { file: f.name, profile: key ? PROFILES[key].label : "UNRECOGNISED", key, rows: p.rows.length, parsed: 0, duplicates: 0,
-        numberFixes: 0, missingImei: 0, missingDuration: 0, imputedDuration: 0, badRows: 0, unmappedTower: 0, mapping: key ? PROFILES[key].map : {}, header: p.header, notes: [] };
+        numberFixes: 0, missingImei: 0, missingDuration: 0, imputedDuration: 0, badRows: 0, unmappedTower: 0, dupRows: [], mapping: key ? PROFILES[key].map : {}, header: p.header, notes: [] };
       db.report.push(rep);
       if (!key) { rep.notes.push("Header does not match any known operator profile. Map columns manually."); return; }
-      const m = PROFILES[key].map, seen = new Set();
+      const m = PROFILES[key].map, seen = new Map();
       p.rows.forEach(r => {
         const id = `${f.name}:${r._row}`;
         if (key === "ipdr") {
@@ -78,21 +79,21 @@
           if (isNaN(start) || isNaN(end)) { rep.badRows++; return; }
           const owner = normNum(r[m.owner]).n;
           const row = { id, file: f.name, row: r._row, owner, pubIp: r[m.pubIp], pubPort: +r[m.pubPort], dest: r[m.dest], dport: +r[m.dport],
-            start, end, cell: r[m.cell], tower: cellTo[r[m.cell]]?.tower_id || null, imei: r[m.imei] || "",
+            start, end, proto: (r.protocol || "").toUpperCase(), cell: r[m.cell], tower: cellTo[r[m.cell]]?.tower_id || null, imei: r[m.imei] || "",
             bytesUp: +r.bytes_up || 0, bytesDown: +r.bytes_down || 0, service: services[r[m.dest] + ":" + r[m.dport]] || null, raw: r };
           db.ipdr.push(row); db.ev[id] = row; rep.parsed++; return;
         }
         const own = normNum(r[m.owner]), oth = normNum(r[m.other]);
         if (!own.n || !oth.n) { rep.badRows++; return; }
         if (own.fixed) rep.numberFixes++; if (oth.fixed) rep.numberFixes++;
-        let ts, dir, kind, dur, endTs = null, cell, durImputed = false;
+        let ts, dir, kind, dur, endTs = null, cell, lac = "", durImputed = false;
         if (key === "airtel") {
           ts = tsAirtel(r[m.date], r[m.time]); const t = r[m.type];
           dir = /MO$|^MOC$/.test(t) ? "OUT" : "IN"; kind = t.startsWith("SMS") ? "SMS" : "VOICE";
-          dur = r[m.dur] === "" ? null : +r[m.dur]; cell = (r[m.cell] || "").split("-").pop();
+          dur = r[m.dur] === "" ? null : +r[m.dur]; const cg = (r[m.cell] || "").split("-"); cell = cg.pop(); lac = cg.pop() || "";
         } else {
           ts = tsJio(r[m.start]); endTs = tsJio(r[m.end]); dir = r[m.dir]; kind = r[m.type] === "SMS" ? "SMS" : "VOICE";
-          dur = hmsToSec(r[m.dur]); cell = (r[m.cell] || "").split("|").pop().trim();
+          dur = hmsToSec(r[m.dur]); cell = (r[m.cell] || "").split("|").pop().trim(); lac = r.lac || "";
         }
         if (isNaN(ts)) { rep.badRows++; return; }
         if (dur === null) {
@@ -101,10 +102,10 @@
         }
         const imei = r[m.imei] || "", imsi = r[m.imsi] || "";
         if (!imei) rep.missingImei++;
-        const tw = cellTo[cell]; if (!tw) rep.unmappedTower++;
+        const tw = lacCell[lac + "|" + cell] || cellTo[cell]; if (!tw) rep.unmappedTower++;
         const dk = [own.n, oth.n, ts, dur, kind, dir].join("|");
-        if (seen.has(dk)) { rep.duplicates++; return; }
-        seen.add(dk);
+        if (seen.has(dk)) { rep.duplicates++; rep.dupRows.push({ row: r._row, of: seen.get(dk) }); return; }
+        seen.set(dk, r._row);
         const rec = { id, file: f.name, row: r._row, owner: own.n, other: oth.n, dir, kind, ts, dur, tower: tw?.tower_id || null, imei, imsi, durImputed, raw: r };
         db.recs.push(rec); db.ev[id] = rec; rep.parsed++;
         db.subjects[own.n] = db.subjects[own.n] || { number: own.n, file: f.name, operator: PROFILES[key].label };
@@ -170,13 +171,15 @@
     return Object.values(M).sort((a, b) => b.n - a.n);
   };
   E.coloc = function (db, winMin = 15) {
-    const W = winMin * 60000, groups = {};
-    const B = db.recs.filter(r => r.owner === db.B && r.tower);
+    const W = winMin * 60000, groups = {}, byT = {};
+    db.recs.forEach(r => { if (r.owner === db.B && r.tower) (byT[r.tower] = byT[r.tower] || []).push(r); });   // db.recs is time-sorted
     db.recs.filter(r => r.owner === db.A && r.tower).forEach(a => {
-      B.filter(b => b.tower === a.tower && Math.abs(b.ts - a.ts) <= W).forEach(b => {
-        const k = a.tower + "|" + E.day(a.ts), g = groups[k] = groups[k] || { tower: a.tower, day: E.day(a.ts), a: new Map(), b: new Map() };
+      const list = byT[a.tower] || []; let lo = 0, hi = list.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (list[mid].ts < a.ts - W) lo = mid + 1; else hi = mid; }
+      for (let i = lo; i < list.length && list[i].ts <= a.ts + W; i++) {
+        const b = list[i], k = a.tower + "|" + E.day(a.ts), g = groups[k] = groups[k] || { tower: a.tower, day: E.day(a.ts), a: new Map(), b: new Map() };
         g.a.set(a.id, a); g.b.set(b.id, b);
-      });
+      }
     });
     return Object.values(groups).filter(g => g.a.size >= 2 && g.b.size >= 2).map(g => {
       const ar = [...g.a.values()], br = [...g.b.values()], all = ar.concat(br).map(r => r.ts);
@@ -195,8 +198,8 @@
     const ids = {}; of(db, who).forEach(r => { if (!r.imei) return; const k = r.imei + "/" + r.imsi; const g = ids[k] = ids[k] || { imei: r.imei, imsi: r.imsi, n: 0, first: r.ts, last: r.ts }; g.n++; g.last = r.ts; });
     return { changes: out, identities: Object.values(ids) };
   };
-  E.ipLookup = function (db, ip, port, ts) {
-    const overlap = db.ipdr.filter(s => s.pubIp === ip && s.start <= ts && ts <= s.end);
+  E.ipLookup = function (db, ip, port, ts, proto) {
+    const overlap = db.ipdr.filter(s => s.pubIp === ip && s.start <= ts && ts <= s.end && (!proto || s.proto === proto));
     const exact = overlap.filter(s => s.pubPort === port);
     return { exact, overlap, subscribers: [...new Set(overlap.map(s => s.owner))] };
   };
@@ -218,7 +221,11 @@
     const a = /suspect a|\ba\b|airtel|संदिग्ध a|सस्पेक्ट a/.test(s), b = /suspect b|\bb\b|jio|संदिग्ध b|सस्पेक्ट b/.test(s);
     return a && !b ? "A" : b && !a ? "B" : "both";
   }
-  const chips = (db, ids) => ids.filter(Boolean).slice(0, 4).map(id => { const e = db.ev[id]; return e ? `<span class="chip" data-ev="${id}">${e.file} · row ${e.row}</span>` : ""; }).join("");
+  const chips = (db, ids) => {
+    ids = [...new Set(ids.filter(Boolean))].filter(id => db.ev[id]);
+    const one = id => `<span class="chip" data-ev="${id}">${db.ev[id].file} · row ${db.ev[id].row}</span>`;
+    return ids.slice(0, 3).map(one).join("") + (ids.length > 3 ? `<span class="chip more" data-evlist="${ids.join(",")}">+${ids.length - 3} more · all ${ids.length} records</span>` : "");
+  };
   E.chips = chips;
   const F = (html, ev) => ({ html, ev: ev.filter(Boolean) });
   const tn = (db, id) => db.towerById[id] ? `${db.towerById[id].area_name} (${id})` : (id || "unknown");
@@ -237,14 +244,14 @@
       const rest = s.replace(ipm[0], " "), tm = /(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(rest), d = findDates(rest)[0];
       if (!d || !tm) return unsupported("To resolve a public IP I need the IP, the source port, and a date and time, for example “203.0.113.45:41234 at 2026-03-07 22:47:10”.");
       const ts = d + ((+tm[1]) * 3600 + (+tm[2]) * 60 + (+(tm[3] || 0))) * 1000, ip = ipm[1], port = ipm[2] ? +ipm[2] : null;
-      const r = E.ipLookup(db, ip, port || -1, ts);
+      const proto = /udp/.test(s) ? "UDP" : /tcp/.test(s) ? "TCP" : null, r = E.ipLookup(db, ip, port || -1, ts, proto);
       if (!r.overlap.length) return unsupported(`No IPDR session for ${ip} covers ${E.fmt(ts)}.`);
       if (!port) return R("ipdr_lookup", { ip, time: E.fmt(ts) }, "partial", [F(`${r.subscribers.length} subscribers share <b>${ip}</b> at that time (carrier-grade NAT), so the IP alone cannot identify one. Provide the source port.`, r.overlap.map(x => x.id))], ["Add the source port to the question"]);
       if (!r.exact.length) return R("ipdr_lookup", { ip, port, time: E.fmt(ts) }, "unsupported", [F(`<b>No session matches ${ip}:${port} at ${E.fmt(ts)}.</b> ${r.subscribers.length} other subscriber(s) used this IP then, on different ports.`, r.overlap.map(x => x.id))]);
       const x = r.exact[0], others = r.overlap.filter(o => o.id !== x.id);
-      return R("ipdr_lookup", { ip, port, time: E.fmt(ts) }, "supported", [
+      return R("ipdr_lookup", { ip, port, protocol: proto || "any", time: E.fmt(ts) }, "supported", [
         F(`<b>${E.label(db, x.owner)} (${E.pretty(x.owner)})</b> held ${ip}:${port} from ${E.fmt(x.start)} to ${E.fmt(x.end)}; destination ${x.dest}:${x.dport}${x.service ? " (" + x.service + ")" : " (no service mapping)"}, tower ${tn(db, x.tower)}.`, [x.id]),
-        F(`${others.length} other session(s) on the same IP at that time used different ports and are ruled out. The IP alone is shared, so only IP + port + time is conclusive.`, others.map(o => o.id))],
+        F(`${others.length} other session(s) on the same IP at that time used different ports and are ruled out. The IP alone is shared, so only IP + port + protocol + time is conclusive.`, others.map(o => o.id))],
         ["Show A's app and service usage", "Where was Suspect A around that time?"]);
     }
     if (has("said", "conversation", "recording", "talk about", "content of", "क्या बात", "बातचीत", "message text"))
@@ -256,8 +263,8 @@
 
     if (has("common", "shared", "both suspects", "in common", "दोनों", "साझा", "सामान्य", "कॉमन")) {
       const c = E.common(db).slice(0, 6), dir = E.direct(db);
-      const f = c.map(x => F(`<b>${E.pretty(x.num)}</b> appears in both datasets: ${E.label(db, db.A)} ${x.a.total} interactions (${x.a.voice} calls), ${E.label(db, db.B)} ${x.b.total} (${x.b.voice} calls)${x.a.night + x.b.night ? `; ${x.a.night + x.b.night} of them between 00:00 and 05:00` : ""}.`, [x.a.recs[0].id, x.b.recs[0].id]));
-      f.push(F(`Direct A↔B contact: ${dir.length} records in A's file, first ${E.fmt(dir[0]?.ts)}, last ${E.fmt(dir[dir.length - 1]?.ts)}.`, dir.slice(0, 2).map(r => r.id)));
+      const f = c.map(x => F(`<b>${E.pretty(x.num)}</b> appears in both datasets: ${E.label(db, db.A)} ${x.a.total} interactions (${x.a.voice} calls), ${E.label(db, db.B)} ${x.b.total} (${x.b.voice} calls)${x.a.night + x.b.night ? `; ${x.a.night + x.b.night} of them between 00:00 and 05:00` : ""}.`, [...x.a.recs.map(r => r.id), ...x.b.recs.map(r => r.id)]));
+      f.push(F(`Direct A↔B contact: ${dir.length} records in A's file, first ${E.fmt(dir[0]?.ts)}, last ${E.fmt(dir[dir.length - 1]?.ts)}.`, dir.map(r => r.id)));
       return R("common_numbers", { suspects: "A,B" }, "supported", f, ["Is there night-time activity with the top shared number?", "Were the suspects ever at the same tower?"]);
     }
     if (has("imei", "sim ", "sim?", "sim.", "handset", "device", "imsi", "सिम", "हैंडसेट") || /\bsim\b/.test(s)) {
@@ -270,30 +277,30 @@
     if (has("same tower", "together", "co-locat", "colocat", "same place", "same location", "meet", "एक ही टावर", "साथ में")) {
       const c = E.coloc(db);
       if (!c.length) return R("co_location", {}, "supported", [F("No windows where both suspects used the same tower within 15 minutes (minimum 2 records each).", [])]);
-      return R("co_location", { window_min: 15 }, "supported", c.map(g => F(`<b>Both suspects at ${tn(db, g.tower)}</b> on ${g.day}, ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}: ${g.a.length} records for A, ${g.b.length} for B.`, [g.a[0].id, g.b[0].id])), ["Who did each suspect call from there?", "Show A's tower timeline on that day"]);
+      return R("co_location", { window_min: 15 }, "supported", c.map(g => F(`<b>Shared cell-site activity at ${tn(db, g.tower)}</b> on ${g.day}, ${E.fmt(g.from).slice(11, 16)}–${E.fmt(g.to).slice(11, 16)}: ${g.a.length} records for A, ${g.b.length} for B. A tower covers an area: this is a lead to corroborate, not proof the two met.`, [...g.a.map(r => r.id), ...g.b.map(r => r.id)])), ["Who did each suspect call from there?", "Show A's tower timeline on that day"]);
     }
     if (has("night", "midnight", "late", "रात", "नाइट")) {
       const ws = who === "both" ? ["A", "B"] : [who], f = [];
       ws.forEach(w => { const n = E.night(db, w).slice(0, 3), tot = n.reduce((a, c) => a + c.night, 0);
         if (!n.length) return f.push(F(`${E.label(db, subjOf(db, w))}: no activity between 00:00 and 05:00.`, []));
-        f.push(F(`<b>${E.label(db, subjOf(db, w))}: ${tot} records between 00:00 and 05:00</b>, mostly with ${n.map(c => `${E.pretty(c.num)} (${c.night})`).join(", ")}.`, n.flatMap(c => c.recs.filter(r => new Date(r.ts).getUTCHours() < 5).slice(0, 1).map(r => r.id)))); });
+        f.push(F(`<b>${E.label(db, subjOf(db, w))}: ${tot} records between 00:00 and 05:00</b>, mostly with ${n.map(c => `${E.pretty(c.num)} (${c.night})`).join(", ")}.`, n.flatMap(c => c.recs.filter(r => new Date(r.ts).getUTCHours() < 5).map(r => r.id)))); });
       return R("night_activity", { hours: "00:00-05:00", suspects: ws.join(",") }, "supported", f, ["Who is the number contacted at night?", "Were the suspects at the same tower?"]);
     }
     if (has("tower", "location", "where", "visit", "repeated", "टावर", "कहाँ", "लोकेशन")) {
       const ws = who === "both" ? ["A", "B"] : [who], day = dates[0] ? E.day(dates[0]) : null, f = [];
       ws.forEach(w => {
         if (day) { const st = E.stays(db, w, day); if (!st.length) return f.push(F(`${E.label(db, subjOf(db, w))}: no tower records on ${day}.`, []));
-          f.push(F(`<b>${E.label(db, subjOf(db, w))} on ${day}:</b> ${st.map(x => `${E.fmt(x.start).slice(11, 16)} ${tn(db, x.tower)}`).join(" → ")}.`, st.map(x => x.recs[0].id)));
+          f.push(F(`<b>${E.label(db, subjOf(db, w))} on ${day}:</b> ${st.map(x => `${E.fmt(x.start).slice(11, 16)} ${tn(db, x.tower)}`).join(" → ")}.`, st.flatMap(x => x.recs.map(r => r.id))));
         } else { const u = E.towerUse(db, w).slice(0, 4), night = [...E.towerUse(db, w)].sort((a, b) => b.nightN - a.nightN)[0];
-          f.push(F(`<b>${E.label(db, subjOf(db, w))} most-used towers:</b> ${u.map(t => `${tn(db, t.tower)} ${t.n} records on ${t.days.size} days`).join("; ")}.${night ? ` Most night-time use (22:00–06:00): ${tn(db, night.tower)} (an inference about residence area, to be verified).` : ""}`, u.map(t => t.recs[0].id)));
+          f.push(F(`<b>${E.label(db, subjOf(db, w))} most-used towers:</b> ${u.map(t => `${tn(db, t.tower)} ${t.n} records on ${t.days.size} days`).join("; ")}.${night ? ` Most night-time use (22:00–06:00): ${tn(db, night.tower)} (an inference about residence area, to be verified).` : ""}`, u.flatMap(t => t.recs.map(r => r.id))));
           const rep = E.towerUse(db, w).filter(t => t.days.size >= 3 && t.n <= 10).slice(0, 2);
-          rep.forEach(t => f.push(F(`Repeated short visits: ${tn(db, t.tower)} on ${t.days.size} separate days (${[...t.days].join(", ")}) with only ${t.n} records.`, [t.recs[0].id]))); } });
+          rep.forEach(t => f.push(F(`Repeated short visits: ${tn(db, t.tower)} on ${t.days.size} separate days (${[...t.days].join(", ")}) with only ${t.n} records.`, t.recs.map(r => r.id)))); } });
       return R("tower_timeline", { suspects: ws.join(","), day }, "supported", f, ["Were the suspects ever at the same tower?", "Show IMEI/SIM changes"]);
     }
     if (dates.length && has("call", "calls", "sms", "between", "on ", "कॉल")) {
       const from = dates[0], to = (dates[1] ?? dates[0]) + 86400000, ws = who === "both" ? ["A", "B"] : [who], f = [];
       ws.forEach(w => { const r = of(db, w).filter(x => x.ts >= from && x.ts < to);
-        f.push(F(`<b>${E.label(db, subjOf(db, w))}: ${r.length} records</b> (${r.filter(x => x.kind === "VOICE").length} calls, ${r.filter(x => x.kind === "SMS").length} SMS) between ${E.day(from)} and ${E.day(to - 1)}${r.length ? `, first ${E.fmt(r[0].ts)}, last ${E.fmt(r[r.length - 1].ts)}` : ""}.`, r.slice(0, 3).map(x => x.id))); });
+        f.push(F(`<b>${E.label(db, subjOf(db, w))}: ${r.length} records</b> (${r.filter(x => x.kind === "VOICE").length} calls, ${r.filter(x => x.kind === "SMS").length} SMS) between ${E.day(from)} and ${E.day(to - 1)}${r.length ? `, first ${E.fmt(r[0].ts)}, last ${E.fmt(r[r.length - 1].ts)}` : ""}.`, r.map(x => x.id))); });
       return R("calls_in_window", { from: E.day(from), to: E.day(to - 1), suspects: ws.join(",") }, "supported", f, ["Show the tower timeline for that day", "Who were the top contacts that day?"]);
     }
     if (has("app", "service", "data usage", "wallet", "streaming", "internet", "ipdr")) {
@@ -303,15 +310,15 @@
     if (has("top", "frequent", "most", "contacts", "सबसे", "अक्सर", "संपर्क")) {
       const ws = who === "both" ? ["A", "B"] : [who];
       return R("top_contacts", { suspects: ws.join(","), n: 5 }, "supported", ws.map(w => { const c = E.contacts(db, w).slice(0, 5);
-        return F(`<b>${E.label(db, subjOf(db, w))} top contacts:</b><br>` + c.map((x, i) => `${i + 1}. ${E.pretty(x.num)}: ${x.total} interactions (${x.voice} calls, ${x.sms} SMS, ${E.hms(x.dur)}, ${x.out} out / ${x.in} in)${x.flags.length ? " ⚑ " + x.flags.join(", ") : ""}`).join("<br>"), c.map(x => x.recs[0].id)); }),
+        return F(`<b>${E.label(db, subjOf(db, w))} top contacts:</b><br>` + c.map((x, i) => `${i + 1}. ${E.pretty(x.num)}: ${x.total} interactions (${x.voice} calls, ${x.sms} SMS, ${E.hms(x.dur)}, ${x.out} out / ${x.in} in)${x.flags.length ? " ⚑ " + x.flags.join(", ") : ""}`).join("<br>"), c.flatMap(x => x.recs.map(r => r.id))); }),
         ["Which numbers are common to both suspects?", "Show night-time activity"]);
     }
     if (has("summary", "summarise", "summarize", "overview", "brief", "सारांश")) {
       const sub = db.report.filter(r => r.key !== "ipdr"), f = [];
       f.push(F(`Records cover ${range}: ${db.recs.filter(r => r.owner === db.A).length} for Suspect A, ${db.recs.filter(r => r.owner === db.B).length} for Suspect B, ${db.ipdr.length} IPDR sessions. ${sub.reduce((a, r) => a + r.duplicates, 0)} duplicate rows were removed on import.`, []));
-      [E.common(db).slice(0, 2).map(x => F(`Shared contact ${E.pretty(x.num)} (A ${x.a.total}, B ${x.b.total}).`, [x.a.recs[0].id, x.b.recs[0].id])),
+      [E.common(db).slice(0, 2).map(x => F(`Shared contact ${E.pretty(x.num)} (A ${x.a.total}, B ${x.b.total}).`, [...x.a.recs.map(r => r.id), ...x.b.recs.map(r => r.id)])),
        ["A", "B"].flatMap(w => E.devices(db, w).changes.map(c => F(`${E.label(db, subjOf(db, w))}: ${c.type} on ${E.day(c.after.ts)}.`, [c.before.id, c.after.id]))),
-       E.coloc(db).map(g => F(`Co-location at ${tn(db, g.tower)} on ${g.day}.`, [g.a[0].id, g.b[0].id]))].flat().forEach(x => f.push(x));
+       E.coloc(db).map(g => F(`Shared cell-site activity at ${tn(db, g.tower)} on ${g.day} (a lead, not proof of meeting).`, [...g.a.map(r => r.id), ...g.b.map(r => r.id)]))].flat().forEach(x => f.push(x));
       return R("case_summary", {}, "supported", f, ["Show night-time activity", "Which numbers are common to both suspects?"]);
     }
     return unsupported("I could not map this question to an analysis the loaded data supports. Try one of the suggestions below.");

@@ -375,6 +375,7 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
 </footer>
 <script src="console/lang.js"></script>
 <script>
+  if (location.search.indexOf("collect=1") > -1) { Lang.collecting = true; window.addEventListener("load", function () { var pre = document.createElement("pre"); pre.id = "__collected"; pre.textContent = JSON.stringify(Lang.collectCores(document.body)); document.body.appendChild(pre); }); }
   Lang.mount(document.getElementById("lang"), function () { Lang.translateDom(document.body).catch(function () { alert("Translation unavailable. Start the local server: python tools/serve.py"); }); })
     .then(function (ok) { if (ok && Lang.on()) Lang.translateDom(document.body); });
 </script>
