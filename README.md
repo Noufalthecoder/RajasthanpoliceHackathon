@@ -19,3 +19,13 @@ The landing page and console have a language picker. Switching is **instant**: e
 - **Fallback:** a string missing from a bundle (e.g. new data) is translated on demand by the local proxy `tools/serve.py` (needs `SARVAM_API_KEY` in a git-ignored `.env`; copy `.env.example`).
 - **Rebuild bundles** after changing UI text: `python tools/serve.py` then, in another terminal, `python tools/build_i18n.py`.
 - Never translated: numbers, file names, evidence chips, code. **Never commit a key.**
+
+## Demo sign-in (prototype)
+Open the landing page and click a demo account (or pick a role) to fill the form, then **Sign in securely**. The console opens as that role.
+| Role | Officer ID | Password | Can |
+|---|---|---|---|
+| Investigating Officer | `RJ-IO-0421` | `Invest@2026` | explore, ask the assistant, add to basket, import |
+| Reviewing Officer | `RJ-RO-0107` | `Review@2026` | everything above + verify/reject, report, audit log |
+| Administrator | `RJ-AD-0001` | `Admin@2026` | audit log, import, "view as" another role |
+
+These are **synthetic demo accounts** checked in the browser (mock authentication, no real security). The final build uses server-side login with hashed passwords, JWT and per-case access. Opening the console without signing in redirects to the login page.

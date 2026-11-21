@@ -894,6 +894,9 @@ Example auto-run: `console/console.html?ask=Any%20IMEI%20changes%3F#assistant`.
 
 ---
 
+### 17.0 Demo accounts (prototype) ✅
+Landing page → click a demo account to fill the form → **Sign in securely** → the console opens as that role (the role switcher is locked except for the Administrator). Investigating Officer `RJ-IO-0421` / `Invest@2026`; Reviewing Officer `RJ-RO-0107` / `Review@2026`; Administrator `RJ-AD-0001` / `Admin@2026`. Synthetic and checked client-side (mock authentication); the console redirects to the login page when there is no session. Final build: server-side login, hashed passwords, JWT, per-case access lists.
+
 ### 17.1 Language support (Sarvam AI) ✅
 - Picker on the landing page and console: English, हिन्दी, বাংলা, ગુજરાતી, ಕನ್ನಡ, മലയാളം, मराठी, ଓଡ଼ିଆ, ਪੰਜਾਬੀ, தமிழ், తెలుగు.
 - **Instant switching:** `tools/build_i18n.py` visits every screen and state in headless Chrome (assistant answers, report, evidence drawer included), collects every UI string, translates them with Sarvam's `mayura:v1`, and writes `console/i18n/<lang>.js`. At run time `console/lang.js` looks strings up synchronously, so a click changes the whole page immediately, offline, and from a double-clicked file (no server, no key).

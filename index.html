@@ -46,7 +46,8 @@ nav.menu a:hover{background:#eaf0fb}
 
 /* hero */
 .hero{position:relative;color:#fff;background:
-  linear-gradient(100deg,rgba(7,22,48,.95) 0%,rgba(11,36,71,.86) 48%,rgba(11,36,71,.45) 100%),
+  linear-gradient(100deg,rgba(7,22,48,.96) 0%,rgba(11,36,71,.88) 50%,rgba(11,36,71,.55) 100%),
+  url("assets/control-room.jpg") center 35%/cover no-repeat,
   url("assets/hero.jpg") center/cover no-repeat,
   radial-gradient(1200px 500px at 80% 20%,#24508f,#0b2447 70%);
   background-color:#0b2447;overflow:hidden}
@@ -70,7 +71,16 @@ nav.menu a:hover{background:#eaf0fb}
 .login input:focus,.login select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
 .login .btn{width:100%;justify-content:center;margin-top:18px}
 .login .note{font-size:11.5px;color:var(--muted);margin-top:12px;display:flex;gap:6px}
+.login .demo-h{font-size:12px;font-weight:700;color:var(--navy);margin:2px 0 6px}.login .demo-h span{font-weight:500;color:var(--muted)}
+.login .dacc{display:grid;gap:6px;margin-bottom:6px}
+.login .dacc button{text-align:left;border:1.5px dashed #9aa7bd;border-radius:9px;padding:7px 11px;background:#f6f9ff;cursor:pointer;font:inherit;font-size:12.5px;color:var(--ink);display:flex;flex-direction:column;gap:1px;transition:.15s}
+.login .dacc button:hover{border-color:var(--accent);background:#eef4ff}.login .dacc button.on{border:1.5px solid var(--saffron);background:#fff8ee}
+.login .dacc button b{color:var(--navy);font-size:13px}.login .dacc code{background:#e7efff;color:#0b3a8f;border-radius:5px;padding:0 6px;font:600 12px ui-monospace,Consolas,monospace}
+.login .pw{position:relative}.login .pw input{padding-right:40px}.login .pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;font-size:16px;padding:4px 6px}
+.login .err{display:none;margin-top:12px;padding:10px;background:#fde8e8;border:1px solid #f0b4b4;color:#8a1c1c;border-radius:8px;font-size:13px}
+.login label{margin:9px 0 4px}.login .btn{margin-top:14px}
 .login .ok{display:none;margin-top:12px;padding:10px;background:#e9f7ec;border:1px solid #b7e1c0;color:#14562a;border-radius:8px;font-size:13px}
+
 
 /* ticker */
 .ticker{background:var(--navy2);color:#fff;font-size:13.5px}
@@ -227,15 +237,22 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
     <aside class="login" id="login">
       <h3>🔐 Authorised Personnel Login</h3>
       <p class="s">Role-based access · all sessions are logged</p>
-      <form onsubmit="event.preventDefault();document.getElementById('ok').style.display='block';setTimeout(function(){location.href='console/console.html'},700)">
-        <label>Role</label>
-        <select><option>Investigating Officer</option><option>Reviewing Officer (verifier)</option><option>Administrator</option></select>
-        <label>Officer ID</label><input placeholder="e.g. RJ-IO-0421" required>
-        <label>Case number</label><input placeholder="e.g. CASE/2026/PS03-001">
-        <label>One-time password</label><input type="password" placeholder="••••••" required>
+      <div class="demo-h">Demo accounts <span>(synthetic prototype · click one to fill the form)</span></div>
+      <div class="dacc" id="demoAcc">
+        <button type="button" data-k="inv"><b>Investigating Officer</b><span class="no-tr">ID <code>RJ-IO-0421</code> · Password <code>Invest@2026</code></span></button>
+        <button type="button" data-k="rev"><b>Reviewing Officer</b><span class="no-tr">ID <code>RJ-RO-0107</code> · Password <code>Review@2026</code></span></button>
+        <button type="button" data-k="adm"><b>Administrator</b><span class="no-tr">ID <code>RJ-AD-0001</code> · Password <code>Admin@2026</code></span></button>
+      </div>
+      <form id="loginForm" autocomplete="off">
+        <label for="lRole">Role</label>
+        <select id="lRole"><option value="inv">Investigating Officer</option><option value="rev">Reviewing Officer (verifier)</option><option value="adm">Administrator</option></select>
+        <label for="lId">Officer ID</label><input id="lId" placeholder="e.g. RJ-IO-0421" required>
+        <label for="lPw">Password</label><div class="pw"><input id="lPw" type="password" placeholder="••••••••" required><button type="button" id="lShow" class="no-tr" aria-label="Show password">👁</button></div>
+        <label for="lCase">Case number</label><input id="lCase" placeholder="e.g. CASE/2026/PS03-001">
         <button class="btn saffron" type="submit">Sign in securely</button>
-        <div class="ok" id="ok">✔ Demo only: authentication is mocked. Opening the case workspace…</div>
-        <div class="note">🛈 <span>Unauthorised access is prohibited and is recorded.</span></div>
+        <div class="err" id="lErr" role="alert">Invalid officer ID or password for the selected role.</div>
+        <div class="ok" id="ok">✔ Signed in. Opening the case workspace…</div>
+        <div class="note">🛈 <span>Unauthorised access is prohibited and is recorded. Prototype: authentication is mocked in the browser; the final build uses server-side login.</span></div>
       </form>
     </aside>
   </div>
@@ -373,6 +390,29 @@ footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;dis
     </div>
   </div>
 </footer>
+<script>
+/* Demo sign-in (prototype): accounts are checked in the browser; the session is kept in sessionStorage and read by the console. */
+(function () {
+  var ACC = { inv: { id: "RJ-IO-0421", pw: "Invest@2026", name: "Investigating Officer" }, rev: { id: "RJ-RO-0107", pw: "Review@2026", name: "Reviewing Officer" }, adm: { id: "RJ-AD-0001", pw: "Admin@2026", name: "Administrator" } };
+  var $ = function (i) { return document.getElementById(i); }, cards = document.querySelectorAll("#demoAcc button");
+  function fill(k) {
+    $("lRole").value = k; $("lId").value = ACC[k].id; $("lPw").value = ACC[k].pw; $("lCase").value = "CASE/2026/PS03-001"; $("lErr").style.display = "none";
+    cards.forEach(function (c) { c.classList.toggle("on", c.getAttribute("data-k") === k); });
+  }
+  cards.forEach(function (c) { c.onclick = function () { fill(c.getAttribute("data-k")); }; });
+  $("lRole").onchange = function () { fill($("lRole").value); };
+  $("lShow").onclick = function () { var p = $("lPw"); p.type = p.type === "password" ? "text" : "password"; };
+  $("loginForm").onsubmit = function (e) {
+    e.preventDefault();
+    var k = $("lRole").value, a = ACC[k], id = $("lId").value.trim().toUpperCase(), pw = $("lPw").value;
+    if (id !== a.id || pw !== a.pw) { $("lErr").style.display = "block"; $("ok").style.display = "none"; return; }
+    try { sessionStorage.setItem("sn_session", JSON.stringify({ id: a.id, role: k, name: a.name, caseNo: $("lCase").value.trim() || "CASE/2026/PS03-001", t: Date.now() })); } catch (x) { }
+    $("lErr").style.display = "none"; $("ok").style.display = "block";
+    setTimeout(function () { location.href = "console/console.html"; }, 500);
+  };
+  try { sessionStorage.removeItem("sn_session"); } catch (x) { }   /* landing page = signed out */
+})();
+</script>
 <script src="console/lang.js"></script>
 <script>
   if (location.search.indexOf("collect=1") > -1) { Lang.collecting = true; window.addEventListener("load", function () { var pre = document.createElement("pre"); pre.id = "__collected"; pre.textContent = JSON.stringify(Lang.collectCores(document.body)); document.body.appendChild(pre); }); }

@@ -267,9 +267,13 @@
     else if (t.dataset.del !== undefined) { basket.splice(+t.dataset.del, 1); store.set("sn_basket", basket); go("basket"); }
     else if (t.dataset.showday) { $("#md").value = t.dataset.showday; $("#md").onchange(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   });
-  $("#role").onchange = e => { role = e.target.value; $("#who").textContent = { inv: "RJ-IO-0421", rev: "RJ-RO-0107", adm: "RJ-AD-0001" }[role]; log("ROLE_SWITCH", ROLES[role]); toast("Role: " + ROLES[role]); go(tab); };
+  $("#role").onchange = e => { role = e.target.value; if (!SESSION) $("#who").textContent = { inv: "RJ-IO-0421", rev: "RJ-RO-0107", adm: "RJ-AD-0001" }[role]; log("ROLE_SWITCH", ROLES[role]); toast("Role: " + ROLES[role]); go(tab); };
 
-  log("LOGIN", "console opened (demo, mocked authentication)");
+  const QS0 = new URLSearchParams(location.search); let SESSION = null;
+  try { SESSION = JSON.parse(sessionStorage.getItem("sn_session")); } catch (e) { }
+  if (!SESSION && !QS0.get("demo") && !QS0.get("collect")) { location.replace("../index.html#login"); return; }   // must sign in first
+  if (SESSION) { role = SESSION.role; $("#role").value = role; $("#who").textContent = SESSION.id; $("#role").disabled = role !== "adm"; $("#role").title = role === "adm" ? "Administrator: view the console as another role" : "Your role is set by your login"; }
+  log("LOGIN", SESSION ? `signed in as ${ROLES[role]} · ${SESSION.caseNo || ""}` : "console opened in demo mode (no sign-in)");
   if (window.Lang) Lang.mount($("#lang"), () => { log("LANGUAGE", Lang.lang); go(tab); Lang.translateDom(document.body).catch(() => { }); }).then(() => { if (Lang.on()) Lang.translateDom(document.body).catch(() => { }); });
   const QS = new URLSearchParams(location.search);
   if (QS.get("demo")) {   // demo state for screenshots / rehearsal: reviewer role + seeded basket
