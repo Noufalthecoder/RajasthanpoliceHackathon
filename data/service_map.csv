@@ -1,0 +1,7 @@
+dest_ip,dest_port,service_indicator,note
+198.51.100.10,443,Messenger-Sim,synthetic service label for demo
+198.51.100.20,443,VideoCall-Sim,synthetic service label for demo
+198.51.100.30,443,Wallet-Sim,synthetic service label for demo
+198.51.100.40,443,Streaming-Sim,synthetic service label for demo
+198.51.100.50,993,Mail-Sim,synthetic service label for demo
+198.51.100.60,443,Social-Sim,synthetic service label for demo

@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SANCHAR-NETRA | CDR / IPDR Intelligence Platform</title>
+<meta name="description" content="SANCHAR-NETRA: evidence-linked CDR/IPDR analysis with an AI investigation assistant. Hackathon prototype.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0b2447; --navy2:#13346b; --saffron:#ff9933; --green:#138808; --gold:#c9a24a;
+  --ink:#16202e; --muted:#5b6778; --line:#dfe5ee; --bg:#f4f6fa; --card:#fff; --accent:#1f5bd8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Inter,"Noto Sans Devanagari",system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.tricolor{height:5px;background:linear-gradient(90deg,var(--saffron) 33.3%,#fff 33.3% 66.6%,var(--green) 66.6%)}
+
+/* disclaimer + utility */
+.disclaimer{background:#fff4d6;border-bottom:1px solid #f0d98a;color:#6b4e00;font-size:12.5px;text-align:center;padding:6px 12px}
+.util{background:var(--navy);color:#cfd9ee;font-size:12.5px}
+.util .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:7px;padding-bottom:7px;flex-wrap:wrap}
+.util a{margin-left:16px;opacity:.9}.util a:hover{opacity:1;text-decoration:underline}
+
+/* header */
+header.main{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(11,36,71,.06)}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:56px;height:56px;object-fit:contain}
+.emblem{width:56px;height:56px}
+.brand h1{font-family:"Source Serif 4",serif;font-size:24px;letter-spacing:.5px;color:var(--navy);line-height:1.1}
+.brand small{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.4px}
+.brand .hi{font-size:12px;color:var(--navy2);font-weight:600}
+nav.menu{display:flex;gap:4px;align-items:center}
+nav.menu a{padding:9px 13px;font-size:14px;font-weight:600;color:var(--navy);border-radius:6px}
+nav.menu a:hover{background:#eaf0fb}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:8px;font-weight:700;font-size:14.5px;border:2px solid transparent;cursor:pointer;transition:.18s}
+.btn.primary{background:var(--navy);color:#fff}.btn.primary:hover{background:var(--navy2);transform:translateY(-1px)}
+.btn.saffron{background:var(--saffron);color:#1b1200}.btn.saffron:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn.ghost{border-color:rgba(255,255,255,.55);color:#fff}.btn.ghost:hover{background:rgba(255,255,255,.12)}
+.btn.outline{border-color:var(--navy);color:var(--navy)}.btn.outline:hover{background:var(--navy);color:#fff}
+
+/* hero */
+.hero{position:relative;color:#fff;background:
+  linear-gradient(100deg,rgba(7,22,48,.95) 0%,rgba(11,36,71,.86) 48%,rgba(11,36,71,.45) 100%),
+  url("assets/hero.jpg") center/cover no-repeat,
+  radial-gradient(1200px 500px at 80% 20%,#24508f,#0b2447 70%);
+  background-color:#0b2447;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:22px 22px;pointer-events:none}
+.hero .wrap{position:relative;z-index:2;display:grid;grid-template-columns:1.15fr .85fr;gap:44px;padding-top:70px;padding-bottom:80px;align-items:center}
+.pill{display:inline-flex;gap:8px;align-items:center;background:rgba(255,153,51,.16);border:1px solid rgba(255,153,51,.5);color:#ffd9a8;padding:6px 14px;border-radius:99px;font-size:12.5px;font-weight:600;letter-spacing:.3px}
+.hero h2{font-family:"Source Serif 4",serif;font-size:clamp(34px,5vw,56px);line-height:1.08;margin:18px 0 14px}
+.hero h2 em{font-style:normal;color:var(--saffron)}
+.hero p.lead{font-size:18px;color:#d6e0f4;max-width:600px}
+.hero .hi-line{margin-top:10px;font-size:16px;color:#ffd9a8;font-weight:600}
+.cta{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.trust{display:flex;gap:22px;margin-top:34px;flex-wrap:wrap;font-size:13px;color:#b9c8e6}
+.trust span::before{content:"✔ ";color:#7ee08a}
+
+/* login card */
+.login{background:#fff;color:var(--ink);border-radius:14px;padding:26px;box-shadow:0 24px 60px rgba(0,0,0,.35);border-top:5px solid var(--saffron)}
+.login h3{font-size:18px;color:var(--navy);margin-bottom:4px}
+.login p.s{font-size:13px;color:var(--muted);margin-bottom:16px}
+.login label{font-size:12.5px;font-weight:600;color:var(--navy);display:block;margin:12px 0 5px}
+.login input,.login select{width:100%;padding:11px 12px;border:1px solid #c9d3e3;border-radius:8px;font:inherit;font-size:14px;background:#fbfcfe}
+.login input:focus,.login select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.login .btn{width:100%;justify-content:center;margin-top:18px}
+.login .note{font-size:11.5px;color:var(--muted);margin-top:12px;display:flex;gap:6px}
+.login .ok{display:none;margin-top:12px;padding:10px;background:#e9f7ec;border:1px solid #b7e1c0;color:#14562a;border-radius:8px;font-size:13px}
+
+/* ticker */
+.ticker{background:var(--navy2);color:#fff;font-size:13.5px}
+.ticker .wrap{display:flex;gap:16px;align-items:center;padding-top:10px;padding-bottom:10px;overflow:hidden}
+.ticker b{background:var(--saffron);color:#1b1200;padding:3px 10px;border-radius:4px;font-size:12px;white-space:nowrap}
+.ticker .track{white-space:nowrap;overflow:hidden;flex:1}
+.ticker .track span{display:inline-block;padding-left:100%;animation:scroll 38s linear infinite}
+@keyframes scroll{to{transform:translateX(-100%)}}
+
+/* sections */
+section{padding:76px 0}
+.eyebrow{color:var(--accent);font-weight:700;font-size:12.5px;letter-spacing:1.4px;text-transform:uppercase}
+.title{font-family:"Source Serif 4",serif;font-size:clamp(26px,3.4vw,38px);color:var(--navy);margin:8px 0 12px;line-height:1.2}
+.sub{color:var(--muted);max-width:720px;font-size:16.5px}
+.center{text-align:center}.center .sub{margin:0 auto}
+.line{width:64px;height:4px;background:linear-gradient(90deg,var(--saffron),var(--green));border-radius:3px;margin:14px 0 0}
+.center .line{margin:14px auto 0}
+
+/* stats */
+.stats{margin-top:-46px;position:relative;z-index:5;padding:0}
+.stats .grid{background:#fff;border-radius:14px;box-shadow:0 14px 40px rgba(11,36,71,.14);display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}
+.stat{padding:26px 22px;text-align:center;border-right:1px solid var(--line)}
+.stat:last-child{border:0}
+.stat .n{font-family:"Source Serif 4",serif;font-size:34px;color:var(--navy);font-weight:700}
+.stat .l{font-size:13px;color:var(--muted)}
+
+/* principle */
+.principle{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:40px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;position:relative}
+.pcard .no{position:absolute;top:-16px;left:24px;background:var(--navy);color:#fff;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700}
+.pcard h4{color:var(--navy);font-size:18px;margin:8px 0 8px}
+.pcard p{color:var(--muted);font-size:14.5px}
+
+/* features */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:42px}
+.fcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px;transition:.2s}
+.fcard:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(11,36,71,.12);border-color:#b9c9e6}
+.ico{width:48px;height:48px;border-radius:12px;background:#eaf0fb;color:var(--navy2);display:grid;place-items:center;font-size:24px;margin-bottom:14px}
+.fcard h4{font-size:17px;color:var(--navy);margin-bottom:6px}
+.fcard p{font-size:14.2px;color:var(--muted)}
+.tag{display:inline-block;margin-top:12px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:#e9f7ec;color:#14562a}
+.tag.g{background:#fff1dc;color:#8a4b00}
+
+/* assistant demo */
+.demo{background:var(--navy);color:#fff}
+.demo .title{color:#fff}.demo .sub{color:#b9c8e6}.demo .eyebrow{color:var(--saffron)}
+.demo .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:center}
+.chat{background:#0f2c58;border:1px solid #274a82;border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.chat .bar{display:flex;gap:6px;margin-bottom:14px}.chat .bar i{width:10px;height:10px;border-radius:50%;background:#3b5f9c}
+.msg{padding:12px 14px;border-radius:12px;font-size:14px;margin-bottom:12px;max-width:92%}
+.msg.u{background:#1f5bd8;margin-left:auto;border-bottom-right-radius:3px}
+.msg.a{background:#fff;color:var(--ink);border-bottom-left-radius:3px}
+.msg.a.warn{background:#fff7e6;border-left:4px solid var(--saffron)}
+.chip{display:inline-block;background:#eaf0fb;color:#0b3a8f;border:1px solid #bdd0f5;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:6px;margin:0 2px;font-family:ui-monospace,Consolas,monospace}
+.vbadge{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:9px;border-top:1px dashed #cfd8e6;font-size:12px;color:var(--muted)}
+.vbadge button{background:var(--green);color:#fff;border:0;border-radius:6px;padding:5px 10px;font-weight:700;font-size:12px;cursor:pointer}
+.checks{list-style:none;margin-top:22px}
+.checks li{padding:8px 0 8px 30px;position:relative;color:#d6e0f4}
+.checks li::before{content:"✔";position:absolute;left:0;color:#7ee08a;font-weight:700}
+
+/* security */
+.sec{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:38px}
+.scard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;border-top:4px solid var(--navy)}
+.scard h5{color:var(--navy);margin:8px 0 4px;font-size:15.5px}.scard p{font-size:13.5px;color:var(--muted)}
+
+/* flow */
+.flow{display:flex;gap:0;margin-top:40px;flex-wrap:wrap;justify-content:center}
+.step{flex:1 1 150px;min-width:150px;text-align:center;padding:18px 12px;position:relative}
+.step .c{width:58px;height:58px;border-radius:50%;background:#fff;border:3px solid var(--navy);display:grid;place-items:center;margin:0 auto 10px;font-size:24px}
+.step b{display:block;color:var(--navy);font-size:14.5px}.step span{font-size:12.5px;color:var(--muted)}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-8px;top:24px;color:var(--saffron);font-size:24px;font-weight:700}
+
+/* banner */
+.banner{background:linear-gradient(100deg,var(--navy),var(--navy2));color:#fff;border-radius:16px;padding:40px;display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap}
+.banner h3{font-family:"Source Serif 4",serif;font-size:28px}.banner p{color:#c6d4ef}
+
+footer{background:#081a36;color:#aebbd6;padding:50px 0 24px;font-size:13.5px}
+footer .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:34px}
+footer h6{color:#fff;font-size:14px;margin-bottom:12px}
+footer a{display:block;padding:3px 0;color:#aebbd6}footer a:hover{color:#fff}
+footer .bottom{border-top:1px solid #1d3257;margin-top:34px;padding-top:18px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12.5px}
+
+@media(max-width:980px){
+  .hero .wrap,.demo .wrap{grid-template-columns:1fr}
+  .features,.principle{grid-template-columns:1fr 1fr}
+  .sec,.stats .grid{grid-template-columns:1fr 1fr}
+  footer .cols{grid-template-columns:1fr 1fr}
+  nav.menu{display:none}
+}
+@media(max-width:620px){
+  .features,.principle,.sec{grid-template-columns:1fr}
+  .stat{border-right:0;border-bottom:1px solid var(--line)}
+  .step:not(:last-child)::after{display:none}
+  .util .wrap div:last-child{display:none}
+}
+
+.force{display:grid;grid-template-columns:1.1fr .9fr;border-radius:16px;overflow:hidden;background:#fff;border:1px solid var(--line);margin:76px 0 0;box-shadow:0 14px 40px rgba(11,36,71,.1)}
+.fimg{min-height:380px;background:linear-gradient(0deg,rgba(11,36,71,.25),rgba(11,36,71,.05)),url("assets/team1.jpg") center/cover}
+.ftxt{padding:40px}
+.fq{margin-top:22px;padding:16px 18px;border-left:4px solid var(--saffron);background:#fff8ee;color:var(--navy);font-weight:600;border-radius:0 8px 8px 0}
+.fq b{color:var(--saffron);font-size:26px;line-height:0;margin-right:4px}
+.fq span{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:6px}
+@media(max-width:980px){.force{grid-template-columns:1fr}.fimg{min-height:260px}}
+@media(max-width:620px){.ftxt{padding:26px}}
+</style>
+</head>
+<body>
+
+<div class="tricolor"></div>
+<div class="disclaimer">⚠ <b>Hackathon prototype</b> built for the Cyber Security Hackathon 2026 (PS03). Uses synthetic data only. Not an official Rajasthan Police website.</div>
+
+<div class="util">
+  <div class="wrap">
+    <div>🇮🇳 &nbsp;राजस्थान पुलिस · Rajasthan Police &nbsp;|&nbsp; Cyber Security Hackathon 2026</div>
+    <div><a href="#">Skip to main content</a><a href="#">A-</a><a href="#">A</a><a href="#">A+</a><a href="#">हिन्दी / English</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap hdr">
+    <a class="brand" href="#top">
+      <img class="logo" src="assets/logo.png" alt="Rajasthan Police emblem"
+           onerror="this.outerHTML='<svg class=&quot;emblem&quot; viewBox=&quot;0 0 64 64&quot;><circle cx=&quot;32&quot; cy=&quot;32&quot; r=&quot;30&quot; fill=&quot;#0b2447&quot; stroke=&quot;#c9a24a&quot; stroke-width=&quot;3&quot;/><path d=&quot;M32 12l16 7v13c0 11-7 17-16 21-9-4-16-10-16-21V19z&quot; fill=&quot;none&quot; stroke=&quot;#ff9933&quot; stroke-width=&quot;3&quot;/><circle cx=&quot;32&quot; cy=&quot;30&quot; r=&quot;6&quot; fill=&quot;#fff&quot;/></svg>'">
+      <div>
+        <h1>SANCHAR-NETRA</h1>
+        <span class="hi">संचार-नेत्र · CDR / IPDR विश्लेषण मंच</span>
+        <small>Telecom Data Intelligence &amp; Investigation Support Platform</small>
+      </div>
+    </a>
+    <nav class="menu">
+      <a href="#principle">Approach</a><a href="#features">Capabilities</a><a href="#assistant">AI Assistant</a><a href="#security">Security</a><a href="#workflow">Workflow</a>
+      <a class="btn primary" href="#login" style="margin-left:8px;padding:9px 18px">Officer Login</a>
+    </nav>
+  </div>
+</header>
+
+<div class="ticker"><div class="wrap"><b>ADVISORY</b><div class="track"><span>AI observations are leads, not conclusions · every finding requires officer verification · all queries are logged for audit · demo uses synthetic CDR/IPDR data only · live interception and real operator data are out of scope</span></div></div></div>
+
+<main id="top">
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <span class="pill">🛡 PS03 · Telecom Data Analytics / Investigation Support</span>
+      <h2>From thousands of call records to <em>verifiable leads</em>, in minutes.</h2>
+      <p class="lead">SANCHAR-NETRA normalises CDR and IPDR from any operator, maps who talked to whom and where, and lets investigators question the data in plain language. Every answer is linked to its source row.</p>
+      <div class="hi-line">हर निष्कर्ष, प्रमाण के साथ। · Every finding, backed by evidence.</div>
+      <div class="cta">
+        <a class="btn saffron" href="#login">Access Investigator Console →</a>
+        <a class="btn ghost" href="#assistant">See the AI Assistant</a>
+      </div>
+      <div class="trust"><span>Evidence-linked answers</span><span>Officer verification gate</span><span>Full audit trail</span><span>Hindi &amp; English</span></div>
+    </div>
+
+    <aside class="login" id="login">
+      <h3>🔐 Authorised Personnel Login</h3>
+      <p class="s">Role-based access · all sessions are logged</p>
+      <form onsubmit="event.preventDefault();document.getElementById('ok').style.display='block'">
+        <label>Role</label>
+        <select><option>Investigating Officer</option><option>Reviewing Officer (verifier)</option><option>Administrator</option></select>
+        <label>Officer ID</label><input placeholder="e.g. RJ-IO-0421" required>
+        <label>Case number</label><input placeholder="e.g. CASE/2026/PS03-001">
+        <label>One-time password</label><input type="password" placeholder="••••••" required>
+        <button class="btn saffron" type="submit">Sign in securely</button>
+        <div class="ok" id="ok">✔ Demo only: authentication is mocked. The full prototype opens the case workspace here.</div>
+        <div class="note">🛈 <span>Unauthorised access is prohibited and is recorded.</span></div>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<section class="stats"><div class="wrap"><div class="grid">
+  <div class="stat"><div class="n">2+</div><div class="l">Operator CDR formats normalised</div></div>
+  <div class="stat"><div class="n">100%</div><div class="l">AI findings carry source references</div></div>
+  <div class="stat"><div class="n">&lt; 60s</div><div class="l">Upload to first insights (target)</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">Conclusions without officer sign-off</div></div>
+</div></div></section>
+
+<section id="principle">
+  <div class="wrap center">
+    <div class="eyebrow">Our approach</div>
+    <h2 class="title">AI proposes. Code computes. Officers verify.</h2>
+    <div class="line"></div>
+    <p class="sub" style="margin-top:14px">The assistant never guesses from raw data. It translates the question, a deterministic engine computes the answer, and the officer confirms before anything becomes a finding.</p>
+    <div class="principle" style="text-align:left">
+      <div class="pcard"><div class="no">1</div><h4>Understand</h4><p>Questions in English or Hindi become a structured query plan: contacts, time windows, towers, IMEI/SIM, IP sessions.</p></div>
+      <div class="pcard"><div class="no">2</div><h4>Compute</h4><p>A deterministic analytics engine runs the plan on normalised records. Counts, durations and timelines are never produced by a language model.</p></div>
+      <div class="pcard"><div class="no">3</div><h4>Verify</h4><p>Each statement links to file, row, number and timestamp. If the data cannot support an answer, the assistant says so plainly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background:#fff">
+  <div class="wrap">
+    <div class="center"><div class="eyebrow">Capabilities</div>
+    <h2 class="title">Everything an investigator needs in one workspace</h2><div class="line"></div></div>
+    <div class="features">
+      <div class="fcard"><div class="ico">📥</div><h4>Format-agnostic import</h4><p>Operator-wise column mapping, validation and normalisation, with a clear report of missing or inconsistent fields.</p><span class="tag">Must-have</span></div>
+      <div class="fcard"><div class="ico">🕸</div><h4>Contact network graph</h4><p>Top contacts, call counts, duration, in/out ratio and unusual links. Click any edge to see the underlying calls.</p><span class="tag">Must-have</span></div>
+      <div class="fcard"><div class="ico">🤝</div><h4>Cross-suspect correlation</h4><p>Common numbers, shared contacts and repeated links across multiple CDR datasets.</p><span class="tag">Must-have</span></div>
+      <div class="fcard"><div class="ico">🗼</div><h4>Tower-location timeline</h4><p>Cell-tower sequence on a map with a time scrubber, repeated-location detection and co-location checks.</p><span class="tag">Must-have</span></div>
+      <div class="fcard"><div class="ico">🌐</div><h4>IPDR correlation</h4><p>Match public IP, source port and timestamp to subscriber sessions, with app and service usage indicators where data allows.</p><span class="tag">Must-have</span></div>
+      <div class="fcard"><div class="ico">📱</div><h4>IMEI / SIM change detection</h4><p>Spot handset swaps and SIM changes, plus night-activity reports and burst patterns.</p><span class="tag g">Good-to-have</span></div>
+      <div class="fcard"><div class="ico">🗣</div><h4>Hindi query support</h4><p>Ask in हिन्दी or English. Answers keep the same evidence references.</p><span class="tag g">Good-to-have</span></div>
+      <div class="fcard"><div class="ico">🧺</div><h4>Evidence basket</h4><p>Collect charts, rows and findings with chain-of-custody metadata, then draft the report from verified items only.</p></div>
+      <div class="fcard"><div class="ico">📄</div><h4>PDF / Excel reports</h4><p>Case summaries and draft investigation reports ready for officer review.</p><span class="tag g">Good-to-have</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="assistant" class="demo">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">AI investigation assistant</div>
+      <h2 class="title">Answers you can check, and honesty when the data falls short</h2>
+      <p class="sub">Every finding carries evidence chips that open the exact source record. Unsupported questions get a clear "the data does not support this", never an invented answer.</p>
+      <ul class="checks">
+        <li>Most frequent contacts and common numbers between suspects</li>
+        <li>Calls in a time window, repeated towers, IMEI/SIM changes</li>
+        <li>Suggested filters and follow-up questions after each answer</li>
+        <li>Explain-this-chart for graphs and timelines</li>
+      </ul>
+    </div>
+    <div class="chat">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="msg u">दोनों संदिग्धों के बीच common numbers कौन से हैं?</div>
+      <div class="msg a">2 numbers appear in both datasets: <b>+91 98XXXXX214</b> (14 calls) and <b>+91 70XXXXX908</b> (3 calls).
+        <br>Sources: <span class="chip">airtel_A.csv · row 412</span><span class="chip">jio_B.csv · row 87</span>
+        <div class="vbadge"><span>AI observation · pending verification</span><button>Verify</button></div>
+      </div>
+      <div class="msg u">Where was Suspect B on 3 March?</div>
+      <div class="msg a warn"><b>The uploaded data does not support this.</b> Suspect B's records cover 10–28 Feb only, and no tower list covers that date.
+        <div class="vbadge"><span>Suggested: upload the March CDR or change the date range</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security">
+  <div class="wrap">
+    <div class="center"><div class="eyebrow">Security &amp; accountability</div>
+    <h2 class="title">Built for sensitive telecom evidence</h2><div class="line"></div>
+    <p class="sub" style="margin-top:14px">Accountability is part of the design, not an add-on.</p></div>
+    <div class="sec">
+      <div class="scard"><div class="ico">👮</div><h5>Role-based access</h5><p>Investigator, Reviewer and Admin roles with least-privilege permissions.</p></div>
+      <div class="scard"><div class="ico">🔒</div><h5>Secure data handling</h5><p>Encrypted storage, file hashing on upload, local or on-premise deployment.</p></div>
+      <div class="scard"><div class="ico">📜</div><h5>Query &amp; activity logs</h5><p>Every question, view and export is recorded with who, what and when.</p></div>
+      <div class="scard"><div class="ico">✅</div><h5>Human verification</h5><p>AI observations stay labelled until an officer verifies them.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="workflow" style="background:#fff">
+  <div class="wrap center">
+    <div class="eyebrow">Workflow</div>
+    <h2 class="title">From raw files to a reviewed report</h2><div class="line"></div>
+    <div class="flow">
+      <div class="step"><div class="c">📂</div><b>Upload</b><span>CDR &amp; IPDR files</span></div>
+      <div class="step"><div class="c">🧩</div><b>Map &amp; normalise</b><span>Validation report</span></div>
+      <div class="step"><div class="c">📊</div><b>Analyse</b><span>Graph, map, patterns</span></div>
+      <div class="step"><div class="c">💬</div><b>Ask</b><span>Evidence-linked AI</span></div>
+      <div class="step"><div class="c">✅</div><b>Verify</b><span>Officer sign-off</span></div>
+      <div class="step"><div class="c">📄</div><b>Report</b><span>PDF / Excel</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="force" style="padding:0">
+  <div class="wrap">
+    <div class="force">
+      <div class="fimg" role="img" aria-label="Police contingent on parade"></div>
+      <div class="ftxt">
+        <div class="eyebrow">Built for the people on the ground</div>
+        <h2 class="title">Technology that backs the officer, never replaces one</h2>
+        <p class="sub">Investigators spend days filtering spreadsheets. SANCHAR-NETRA gives that time back, so officers can spend it on judgement, verification and the case itself.</p>
+        <div class="fq"><b>&ldquo;</b>The platform finds the lead. The officer decides what it means.<span>Design principle, SANCHAR-NETRA</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:60px"><div class="wrap">
+  <div class="banner">
+    <div><h3>Ready to see it on the demo case?</h3><p>Open the investigator console with synthetic CDR, IPDR and tower data.</p></div>
+    <a class="btn saffron" href="#login">Open console →</a>
+  </div>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div><h6>SANCHAR-NETRA</h6><p>An evidence-first CDR/IPDR analysis platform with an AI investigation assistant. Prototype by Team HackCrew, Chennai Institute of Technology.</p></div>
+      <div><h6>Platform</h6><a href="#features">Capabilities</a><a href="#assistant">AI Assistant</a><a href="#workflow">Workflow</a></div>
+      <div><h6>Governance</h6><a href="#security">Security</a><a href="#principle">Verification policy</a><a href="#">Audit &amp; logging</a></div>
+      <div><h6>Hackathon</h6><a href="#">Cyber Security Hackathon 2026</a><a href="#">Final: RPA Jaipur, 28–29 Nov</a><a href="#">Problem statement PS03</a></div>
+    </div>
+    <div class="bottom">
+      <div>© 2026 Team HackCrew · Hackathon prototype · Synthetic data only · Not an official Rajasthan Police website.</div>
+      <div>Rajasthan Police name and emblem belong to their owners and are shown for the hackathon context only.<br>Photo credits via Wikimedia Commons: <a style="display:inline;text-decoration:underline" href="https://commons.wikimedia.org/wiki/File:Hawa_Mahal_at_Sunrise,_Jaipur_-_panoramio.jpg">Hawa Mahal, Ant&ocirc;nio Milena (CC BY 3.0)</a> &middot; <a style="display:inline;text-decoration:underline" href="https://commons.wikimedia.org/wiki/File:Delhi_Police_Parade.jpeg">Delhi Police Parade (CC BY 3.0)</a> &middot; <a style="display:inline;text-decoration:underline" href="https://commons.wikimedia.org/wiki/File:Rajasthan_Police_Service_logo.png">Logo file page</a></div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

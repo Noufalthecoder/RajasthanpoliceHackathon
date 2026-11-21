@@ -1,0 +1,170 @@
+{
+  "case": "PS03-DEMO-001 / Operation Mirage",
+  "period": "2026-03-01 to 2026-03-14",
+  "suspects": {
+    "A": {
+      "number": "+919800010001",
+      "operator": "Airtel"
+    },
+    "B": {
+      "number": "+919800020002",
+      "operator": "Jio"
+    }
+  },
+  "events_generated": {
+    "A": 297,
+    "B": 291
+  },
+  "top5_contacts_A": [
+    [
+      "+919800070007",
+      69
+    ],
+    [
+      "+919800060006",
+      62
+    ],
+    [
+      "+919800080008",
+      62
+    ],
+    [
+      "+919800030003",
+      52
+    ],
+    [
+      "+919800050005",
+      12
+    ]
+  ],
+  "top5_contacts_B": [
+    [
+      "+919800090009",
+      82
+    ],
+    [
+      "+919800100010",
+      71
+    ],
+    [
+      "+919800110011",
+      43
+    ],
+    [
+      "+919800040004",
+      42
+    ],
+    [
+      "+919800030003",
+      33
+    ]
+  ],
+  "common_numbers_between_A_and_B": {
+    "+918000000001": {
+      "calls_A": 9,
+      "calls_B": 5,
+      "label": "noise/service"
+    },
+    "+919800030003": {
+      "calls_A": 52,
+      "calls_B": 33,
+      "label": "Shared contact C1"
+    },
+    "+919800040004": {
+      "calls_A": 9,
+      "calls_B": 42,
+      "label": "Shared contact C2"
+    },
+    "+919800120012": {
+      "calls_A": 11,
+      "calls_B": 2,
+      "label": "noise/service"
+    }
+  },
+  "direct_A_B_calls": 11,
+  "night_00_05_activity_A": {
+    "+919800030003": 21
+  },
+  "night_00_05_activity_B": {
+    "+919800040004": 13
+  },
+  "burner_number_C3": {
+    "number": "+919800050005",
+    "active_days": [
+      "2026-03-06",
+      "2026-03-07"
+    ],
+    "only_in": "A"
+  },
+  "imei_change_A": {
+    "from": "356938035643809",
+    "to": "356938035643817",
+    "effective": "2026-03-08T00:00:00",
+    "same_imsi": "404700000000101"
+  },
+  "sim_change_B": {
+    "imsi_from": "405857000000202",
+    "imsi_to": "405857000000299",
+    "effective": "2026-03-09T00:00:00",
+    "same_imei": "490154203237518"
+  },
+  "co_location_events": [
+    {
+      "tower": "T07",
+      "area": "Sanganer Airport",
+      "window_start": "2026-03-06T23:05:00",
+      "window_end": "2026-03-06T23:55:00"
+    },
+    {
+      "tower": "T03",
+      "area": "Malviya Nagar",
+      "window_start": "2026-03-12T14:00:00",
+      "window_end": "2026-03-12T14:50:00"
+    }
+  ],
+  "A_home_tower": "T05",
+  "A_most_used_towers": [
+    [
+      "T12",
+      162
+    ],
+    [
+      "T05",
+      96
+    ],
+    [
+      "T01",
+      12
+    ],
+    [
+      "T02",
+      6
+    ]
+  ],
+  "A_repeat_visits_T08_days": [
+    "2026-03-03",
+    "2026-03-07",
+    "2026-03-11"
+  ],
+  "ipdr_incident": {
+    "public_ip": "203.0.113.45",
+    "public_port": 41234,
+    "time": "2026-03-07 22:47:10",
+    "answer_subscriber": "+919800010001",
+    "decoy_same_ip_other_port": {
+      "port": 46112,
+      "msisdn": "+919800990001"
+    },
+    "note": "Only port+time uniquely identifies the subscriber; IP alone is shared (CGNAT)."
+  },
+  "planted_data_quality_issues": {
+    "airtel": "number formats mixed (10-digit, 0-prefixed, spaced, +91), ~1.5% blank IMEI, 8 duplicate rows, date+time in separate columns",
+    "jio": "dd-mm-yyyy timestamps, duration as hh:mm:ss with 6 blanks, mixed +91/no-prefix other_party, tower name+cell in one field",
+    "ipdr": "CGNAT: public IP shared by 5 subscribers; service unknown for 198.51.100.99 (tests 'data does not support')"
+  },
+  "unsupported_question_examples": [
+    "Where was Suspect B on 20 March 2026? (outside data range)",
+    "What was said in the calls? (content not in CDR)",
+    "Who owns +91 98000 30003? (no subscriber-detail file supplied)"
+  ]
+}
