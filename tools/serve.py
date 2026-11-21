@@ -8,14 +8,19 @@ The Sarvam API key is read from the SARVAM_API_KEY environment variable or from 
 .env file in the project root. It is used only by this process; it is never sent to the browser.
 Translations are cached in .cache/translate.json (git-ignored), so a demo that has been run once
 keeps working if the venue internet drops.
+
+Rate-limit friendly: many short strings are packed into one request (separated by " ||| "),
+at most 2 requests run in parallel, and HTTP 429 is retried with back-off. A string that still
+fails is returned unchanged with ok=false and is NOT cached, so the browser can retry it.
 """
-import http.server, json, os, sys, threading, urllib.request, urllib.error
+import http.server, json, os, sys, threading, time, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 CACHE_FILE = os.path.join(ROOT, ".cache", "translate.json")
-# Languages supported by Sarvam's mayura:v1 model
-LANGS = {"en-IN", "hi-IN", "bn-IN", "gu-IN", "kn-IN", "ml-IN", "mr-IN", "od-IN", "pa-IN", "ta-IN", "te-IN"}
+LANGS = {"en-IN", "hi-IN", "bn-IN", "gu-IN", "kn-IN", "ml-IN", "mr-IN", "od-IN", "pa-IN", "ta-IN", "te-IN"}   # Sarvam mayura:v1
+SEP = " ||| "
+MAX_CHARS, MAX_ITEMS = 850, 18
 
 
 def load_key():
@@ -34,7 +39,6 @@ def load_key():
 
 KEY = load_key()
 _lock = threading.Lock()
-FAILS = []
 try:
     CACHE = json.load(open(CACHE_FILE, encoding="utf-8"))
 except Exception:
@@ -47,7 +51,7 @@ def save_cache():
         json.dump(CACHE, f, ensure_ascii=False)
 
 
-def sarvam(text, src, tgt):
+def sarvam_once(text, src, tgt):
     body = json.dumps({"input": text, "source_language_code": src, "target_language_code": tgt,
                        "model": "mayura:v1", "mode": "formal"}).encode()
     req = urllib.request.Request("https://api.sarvam.ai/translate", data=body, method="POST",
@@ -56,29 +60,62 @@ def sarvam(text, src, tgt):
         return json.load(r)["translated_text"]
 
 
-def translate_one(text, src, tgt):
-    if not text.strip() or src == tgt:
-        return text
-    k = f"{src}>{tgt}|{text}"
-    if k in CACHE:
-        return CACHE[k]
-    try:
-        out = sarvam(text, src, tgt)
-    except urllib.error.HTTPError as e:      # one bad string must not fail the whole page: fall back to the original
-        detail = ""
+def sarvam(text, src, tgt):
+    """One API call with retry/back-off on rate limiting. Returns None if it still fails."""
+    delay = 1.5
+    for attempt in range(5):
         try:
-            detail = e.read().decode("utf-8", "ignore")[:160]
-        except Exception:
-            pass
-        sys.stderr.write(f"translate failed HTTP {e.code} len={len(text)} {detail}\n")
-        FAILS.append(e.code)
-        return text
-    except Exception as e:
-        sys.stderr.write(f"translate failed {type(e).__name__}\n")
-        FAILS.append(-1)
-        return text
-    CACHE[k] = out
-    return out
+            return sarvam_once(text, src, tgt)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 4:
+                time.sleep(delay); delay *= 2; continue
+            sys.stderr.write(f"translate failed HTTP {e.code} len={len(text)}\n")
+            return None
+        except Exception as e:
+            sys.stderr.write(f"translate failed {type(e).__name__}\n")
+            return None
+    return None
+
+
+def run_batch(batch, src, tgt):
+    """batch: list of (index, text). Returns {index: translated or None}."""
+    if len(batch) == 1:
+        i, t = batch[0]
+        return {i: sarvam(t, src, tgt)}
+    out = sarvam(SEP.join(t for _, t in batch), src, tgt)
+    if out is not None:
+        parts = [p.strip() for p in out.split("|||")]
+        if len(parts) == len(batch) and all(parts):
+            return {i: p for (i, _), p in zip(batch, parts)}
+    # separator got mangled (or call failed): translate individually
+    return {i: sarvam(t, src, tgt) for i, t in batch}
+
+
+def translate_many(texts, src, tgt):
+    res = [None] * len(texts)
+    todo = []
+    for i, t in enumerate(texts):
+        if not t.strip() or src == tgt:
+            res[i] = t
+        elif f"{src}>{tgt}|{t}" in CACHE:
+            res[i] = CACHE[f"{src}>{tgt}|{t}"]
+        else:
+            todo.append((i, t))
+    batches, cur, n = [], [], 0
+    for i, t in todo:
+        if cur and (n + len(t) + len(SEP) > MAX_CHARS or len(cur) >= MAX_ITEMS):
+            batches.append(cur); cur, n = [], 0
+        cur.append((i, t)); n += len(t) + len(SEP)
+    if cur:
+        batches.append(cur)
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        for got in ex.map(lambda b: run_batch(b, src, tgt), batches):
+            for i, v in got.items():
+                if v is not None:
+                    res[i] = v
+                    CACHE[f"{src}>{tgt}|{texts[i]}"] = v
+    ok = [r is not None for r in res]
+    return [r if r is not None else texts[i] for i, r in enumerate(res)], ok
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -99,9 +136,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/api/translate/status":
             return self._json(200, {"enabled": bool(KEY), "languages": sorted(LANGS), "cached": len(CACHE)})
-        # never serve secrets or cache over HTTP
         p = self.path.split("?")[0]
-        if p.startswith(("/.env", "/.cache", "/.git")):
+        if p.startswith(("/.env", "/.cache", "/.git")):   # never serve secrets or cache over HTTP
             return self._json(404, {"error": "not found"})
         return super().do_GET()
 
@@ -114,19 +150,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             n = int(self.headers.get("Content-Length", "0"))
             req = json.loads(self.rfile.read(min(n, 2_000_000)))
             texts, tgt, src = req["texts"], req["target"], req.get("source", "en-IN")
-            if not isinstance(texts, list) or len(texts) > 300 or tgt not in LANGS or (src not in LANGS and src != "auto"):
+            if not isinstance(texts, list) or len(texts) > 400 or tgt not in LANGS or (src not in LANGS and src != "auto"):
                 raise ValueError("bad request")
-            texts = [str(t)[:1000] for t in texts]
+            texts = [" ".join(str(t).split())[:900] for t in texts]
         except Exception:
             return self._json(400, {"error": "bad request"})
-        del FAILS[:]
-        with ThreadPoolExecutor(max_workers=6) as ex:
-            out = list(ex.map(lambda t: translate_one(t, src, tgt), texts))
+        out, ok = translate_many(texts, src, tgt)
         save_cache()
-        self._json(200, {"translations": out, "failed": len(FAILS)})
+        self._json(200, {"translations": out, "ok": ok, "failed": ok.count(False)})
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
-    print(f"SANCHAR-NETRA at http://localhost:{port}  ·  translation: {'ON' if KEY else 'OFF (no SARVAM_API_KEY)'}")
+    print(f"SANCHAR-NETRA at http://localhost:{port}  ·  translation: {'ON' if KEY else 'OFF (no SARVAM_API_KEY)'}", flush=True)
     http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()

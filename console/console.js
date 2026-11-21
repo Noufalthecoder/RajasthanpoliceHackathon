@@ -36,7 +36,7 @@
   let langBusy = 0;
   function applyLang() {
     if (!window.Lang || !Lang.on()) return;
-    const n = ++langBusy; $("#toast").classList.contains("on") || toast("Translating… / अनुवाद हो रहा है…");
+    const n = ++langBusy;
     Lang.translateDom(document.body).catch(() => { if (n === langBusy) toast("Translation unavailable. Is the local server running (python tools/serve.py)?"); });
   }
   function go(t) { tab = t; renderNav(); log("VIEW", t); const v = VIEWS[t](); $("#main").innerHTML = v.html; window.scrollTo(0, 0); v.after && v.after(); applyLang(); }
